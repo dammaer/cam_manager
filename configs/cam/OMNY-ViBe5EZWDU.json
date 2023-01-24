@@ -1,0 +1,114 @@
+{
+    "Firmware": {},
+    "SetVideoEncoderConfiguration0": {
+        "Configuration": {
+            "token": null,
+            "Name": null,
+            "UseCount": 1,
+            "Encoding": "H264",
+            "Resolution": {
+                "Width": 1920,
+                "Height": 1080
+            },
+            "Quality": 10.0,
+            "RateControl": {
+                "FrameRateLimit": 25,
+                "EncodingInterval": 1,
+                "BitrateLimit": 2048
+            },
+            "MPEG4": null,
+            "H264": {
+                "GovLength": 50,
+                "H264Profile": "High"
+            },
+            "Multicast": {
+                "Address": {
+                    "Type": "IPv4",
+                    "IPv4Address": "0.0.0.0",
+                    "IPv6Address": null
+                },
+                "Port": 0,
+                "TTL": 0,
+                "AutoStart": false
+            },
+            "SessionTimeout": null
+        },
+        "ForcePersistence": true
+    },
+    "SetVideoEncoderConfiguration1": {
+        "Configuration": {
+            "token": null,
+            "Name": null,
+            "UseCount": 1,
+            "Encoding": "H264",
+            "Resolution": {
+                "Width": 640,
+                "Height": 360
+            },
+            "Quality": 8.0,
+            "RateControl": {
+                "FrameRateLimit": 15,
+                "EncodingInterval": 1,
+                "BitrateLimit": 512
+            },
+            "MPEG4": null,
+            "H264": {
+                "GovLength": 50,
+                "H264Profile": "High"
+            },
+            "Multicast": {
+                "Address": {
+                    "Type": "IPv4",
+                    "IPv4Address": "0.0.0.0",
+                    "IPv6Address": null
+                },
+                "Port": 0,
+                "TTL": 0,
+                "AutoStart": false
+            },
+            "SessionTimeout": null
+        },
+        "ForcePersistence": true
+    },
+    "DeleteOSD": {},
+    "SetAudioEncoderConfiguration": {
+        "method": "POST",
+        "url": "action/set?subject=audioenc",
+        "data": "<?xml version=\"1.0\" encoding=\"utf-8\"?><request><audioenc ver=\"2.0\"><active>0</active><codec>0</codec><sample>8000</sample><bitwidth>16</bitwidth><bitrate>16000</bitrate><channel>0</channel><input>1</input></audioenc></request>",
+        "auth": "Basic"
+    },
+    "SetNTP": {
+        "method": "POST",
+        "url": "action/set?subject=systime",
+        "data": "<?xml version=\"1.0\" encoding=\"utf-8\"?><request><systime ver=\"2.0\"><mode>1</mode><tz>MSK-3</tz><dst><active>0</active></dst><ntp><host>ntp.lanta.me</host><port>123</port><interval>1</interval></ntp></systime></request>",
+        "auth": "Basic"
+    },
+    "CreateUsers": {
+        "User": {
+            "Username": "viewer",
+            "Password": null,
+            "UserLevel": "Operator"
+        }
+    },
+    "SetUser": {
+        "User": {
+            "Username": "admin",
+            "Password": null,
+            "UserLevel": "Administrator"
+        }
+    },
+    "SetNetworkInterfaces": {
+        "InterfaceToken": null,
+        "NetworkInterface": {
+            "Enabled": true,
+            "Link": {
+                "AutoNegotiation": true,
+                "Speed": 100,
+                "Duplex": "Full"
+            },
+            "IPv4": {
+                "DHCP": true
+            }
+        }
+    }
+}

@@ -1,0 +1,152 @@
+{
+    "Firmware": {
+        "IPCAM_V2.12.170523": {}
+    },
+    "SetVideoEncoderConfiguration0": {
+        "Configuration": {
+            "token": null,
+            "Name": null,
+            "UseCount": 1,
+            "Encoding": "H264",
+            "Resolution": {
+                "Width": 1920,
+                "Height": 1080
+            },
+            "Quality": 4.0,
+            "RateControl": {
+                "FrameRateLimit": 25,
+                "EncodingInterval": 50,
+                "BitrateLimit": 2048
+            },
+            "MPEG4": null,
+            "H264": {
+                "GovLength": 50,
+                "H264Profile": "Main"
+            },
+            "Multicast": {
+                "Address": {
+                    "Type": "IPv4",
+                    "IPv4Address": "239.0.0.1",
+                    "IPv6Address": null
+                },
+                "Port": 5050,
+                "TTL": 60,
+                "AutoStart": false
+            },
+            "SessionTimeout": null
+        },
+        "ForcePersistence": true
+    },
+    "SetVideoEncoderConfiguration1": {
+        "Configuration": {
+            "token": null,
+            "Name": null,
+            "UseCount": 1,
+            "Encoding": "H264",
+            "Resolution": {
+                "Width": 640,
+                "Height": 360
+            },
+            "Quality": 4.0,
+            "RateControl": {
+                "FrameRateLimit": 15,
+                "EncodingInterval": 50,
+                "BitrateLimit": 512
+            },
+            "MPEG4": null,
+            "H264": {
+                "GovLength": 50,
+                "H264Profile": "Main"
+            },
+            "Multicast": {
+                "Address": {
+                    "Type": "IPv4",
+                    "IPv4Address": "239.0.0.1",
+                    "IPv6Address": null
+                },
+                "Port": 5052,
+                "TTL": 60,
+                "AutoStart": false
+            },
+            "SessionTimeout": null
+        },
+        "ForcePersistence": true
+    },
+    "DeleteOSD": {
+        "method": "POST",
+        "url": "goform/formVideoStream",
+        "data": {
+            "MirrorEnabledHor": "false",
+            "MirrorEnabledVer": "false",
+            "OverlayEnabled": "false",
+            "root_Image_I0_Text_DateEnabled": "yes",
+            "DateEnabled": "true",
+            "root_Image_I0_Text_ClockEnabled": "yes",
+            "ClockEnabled": "true",
+            "root_Image_I0_Text_String": "",
+            "TextEnabled": "false",
+            "ImageEnabled": "false",
+            "root_Image_DateFormat": 2,
+            "root_Image_TimeFormat": 0,
+            "AnalogEnabled": "false"
+        },
+        "auth": "Basic"
+    },
+    "SetAudioEncoderConfiguration": {
+        "method": "POST",
+        "url": "goform/formAudio",
+        "data": {
+            "root_Audio_Enabled": "no",
+            "root_Audio_InputVol": "50",
+            "root_Audio_OutputVol": "50",
+            "permit": "yes",
+            "audioInMode": "auto"
+        },
+        "auth": "Basic"
+    },
+    "SetNTP": {
+        "method": "POST",
+        "url": "goform/formDate",
+        "data": {
+            "root_Time_POSIXTimeZone": "MSK-3MSD,M3.5.0,M10.5.0/3",
+            "root_Time_DST_Enabled": "yes",
+            "Time_DST_Enabled": "on",
+            "root_Time_SyncSource": "NTP",
+            "ntpServer": "ntp.lanta.me",
+            "interval": "day1",
+            "permit": "yes",
+            "formType": "formType2",
+            "action": "set_time",
+            "dummy": ""
+        },
+        "auth": "Basic"
+    },
+    "CreateUsers": {
+        "User": {
+            "Username": "viewer",
+            "Password": null,
+            "UserLevel": "User"
+        }
+    },
+    "SetUser": {
+        "User": {
+            "Username": "admin",
+            "Password": null,
+            "UserLevel": "Administrator"
+        }
+    },
+    "SetNetworkInterfaces": {
+        "InterfaceToken": null,
+        "NetworkInterface": {
+            "Enabled": true,
+            "Link": {
+                "AutoNegotiation": true,
+                "Speed": 100,
+                "Duplex": "Full"
+            },
+            "IPv4": {
+                "DHCP": true
+            }
+        }
+    }
+}

@@ -1,0 +1,11 @@
+.env
+venv
+.vscode/
+temp.py
+env.py
+__pycache__/
+dist/
+build/
+log/
+cam_clients_script/
+settings.ini
