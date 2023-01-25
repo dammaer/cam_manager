@@ -1,6 +1,5 @@
 {
     "Firmware": {
-        "ONVIF_V3.3.0.20210705": null,
         "ONVIF_V3.0.0.20190625": {
             "SetNTP": "1"
         }

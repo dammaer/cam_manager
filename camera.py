@@ -27,7 +27,8 @@ class Camera():
     conf_numbers = None
     selected_conf = {}
 
-    def __init__(self, host, port=80, user='admin', passwd='admin'):
+    def __init__(self, host, port=80, user='admin',
+                 passwd='admin', debug=False):
         self.host = host
         self.port = port
         self.user = user
@@ -47,9 +48,10 @@ class Camera():
         self.firmware = self.deviceinfo.FirmwareVersion
         self.file = CONF_DIR + f'/cam/{self.model}.json'
         try:
-            with open(self.file, 'r') as f:
-                self.operations = json.load(f)
-            self.GetFirmwareConfig()
+            if not debug:
+                with open(self.file, 'r') as f:
+                    self.operations = json.load(f)
+                self.GetFirmwareConfig()
         except FileNotFoundError:
             if not os.path.exists('log'):
                 os.makedirs('log')

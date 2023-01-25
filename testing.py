@@ -13,9 +13,9 @@ ENDC = '\033[0m'
 class TestingOnvif(Camera):
 
     def __init__(self, host, port=80, user='admin',
-                 passwd='admin', check=False):
+                 passwd='admin', check=False, debug=False):
         self.check = check
-        super().__init__(host, port, user, passwd)
+        super().__init__(host, port, user, passwd, debug)
 
     def to_dict(self, obj):
         return helpers.serialize_object(obj, dict)
@@ -49,7 +49,7 @@ class TestingOnvif(Camera):
             for p in params:
                 resp_param = self.to_dict(resp[p])
                 if resp_param == conf[p]:
-                    test += f'Video profile-{vec}: {p} -{OK}\n'
+                    test += f'Video profile-{vec}: {p} - {OK}\n'
                 else:
                     test += (f'Video profile-{vec}: {p} - '
                              f'{ERROR} ({resp_param}){ENDC}\n')
@@ -117,13 +117,26 @@ class TestingOnvif(Camera):
 
 
 if __name__ == '__main__':
-    test = TestingOnvif(host='192.168.13.62',
+    """
+    debug:
+        True - отключаем загрузку json конфига камеры
+    check:
+        True - проверка конкретных параметров после настройки камеры
+                (debug=False)
+        False - полный вывод всех параметров
+                (debug=True)
+    """
+    test = TestingOnvif(host='192.168.13.234',
                         passwd=ADMIN_PASSWD,
-                        check=True)
-    print(test.GetVideoEncoderConfiguration())
-    print(test.GetVideoEncoderConfiguration(vec=1))
-    print(test.GetOSDs())
-    print(test.GetNTP())
-    print(test.GetSystemDateAndTime())
-    print(test.GetUsers())
+                        check=True,
+                        debug=False)
     print(test.GetInfo())
+    try:
+        print(test.GetVideoEncoderConfiguration())
+        print(test.GetVideoEncoderConfiguration(vec=1))
+        print(test.GetOSDs())
+        print(test.GetNTP())
+        print(test.GetSystemDateAndTime())
+        print(test.GetUsers())
+    except TypeError:
+        pass
