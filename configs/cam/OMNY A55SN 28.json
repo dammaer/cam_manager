@@ -109,5 +109,10 @@
             "Content-Type": "application/xml"
         },
         "auth": "Digest"
+    },
+    "FactoryDefault": {
+        "method": "PUT",
+        "url": "ISAPI/System/factoryReset/type/1",
+        "auth": "Digest"
     }
 }

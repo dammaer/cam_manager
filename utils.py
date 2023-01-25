@@ -1,3 +1,4 @@
+import re
 import signal
 import socket
 import struct
@@ -6,6 +7,7 @@ import time
 from icmplib import multiping, ping
 
 from env import DEF_IP
+from ros_old_api import RosOldApi
 
 HOSTS = DEF_IP
 
@@ -17,17 +19,35 @@ class InputTimedOut(Exception):
     pass
 
 
+class MacAddressBad(Exception):
+    pass
+
+
 def host_ping(host, count=1):
     result = ping(host, count, interval=0.5, timeout=1, privileged=False)
     return result
 
 
-def check_ip(count=3, interval=0.5):
+def find_ip(count=3, interval=0.5):
     result = multiping(HOSTS, count, interval,
                        timeout=1, privileged=False)
     for host in result:
         if host.is_alive:
             return host.address
+
+
+def get_ip(mac):
+    rb = RosOldApi()
+    ip = None
+    count = 0
+    while count < 3:
+        lease = rb.get_lease_info(mac)
+        if lease:
+            ip = lease[0]['address']
+            break
+        count += 1
+        time.sleep(1)
+    return ip
 
 
 def inputTimeOutHandler(signum, frame):
@@ -39,11 +59,20 @@ def input_with_timeout(timeout=0):
     try:
         signal.signal(signal.SIGALRM, inputTimeOutHandler)
         signal.alarm(timeout)
-        unput = input()
+        unput = input('\033[32m> \033[0m')
         signal.alarm(0)
     except InputTimedOut:
         pass
     return unput
+
+
+def mac_check(mac):
+    mac = mac.strip()
+    mac_pattern = '([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})'
+    if bool(re.match(mac_pattern, mac)):
+        return mac
+    else:
+        raise MacAddressBad(mac, 'Некорректно введён mac-адрес!')
 
 
 def mcast_send():
@@ -72,4 +101,3 @@ def mcast_recv():
             return True
     except TimeoutError:
         return False
-

@@ -12,9 +12,9 @@ from tqdm import tqdm
 from zeep import helpers
 
 from env import ADMIN_PASSWD, CONF_DIR, NTP_DNS, VIEWER_PASSWD
-from ros_old_api import RosOldApi
+from utils import get_ip, find_ip
 
-BAR_FMT = '{l_bar}{bar:50}{n_fmt}/{total_fmt}'
+BAR_FMT = '{l_bar}{bar:50}'
 
 
 class ModelNotFound(Exception):
@@ -51,7 +51,12 @@ class Camera():
                 self.operations = json.load(f)
             self.GetFirmwareConfig()
         except FileNotFoundError:
-            pass
+            if not os.path.exists('log'):
+                os.makedirs('log')
+            with open('log/models_not_found.log', 'a+') as f:
+                d_t = dt.now().strftime('%Y-%m-%d_%H:%M')
+                f.write(f'{d_t} - {self.model}\n')
+            raise ModelNotFound(f'Модель {self.model} не найдена')
 
     def _request(self, method, url, data=None, headers=None, auth=None):
         base_url = f"http://{self.host}/{url}"
@@ -160,8 +165,8 @@ class Camera():
         count = 0
         while count < 15:
             resp = self.devicemgmt.GetUsers()
-            if len(self._to_dict(resp)) == 2:
-                resp_user = self._to_dict(resp[1]['Username'])
+            for user in self._to_dict(resp):
+                resp_user = user.get('Username')
                 if resp_user == conf['Username']:
                     return True
             else:
@@ -272,55 +277,58 @@ class Camera():
         process.kill()
 
     def SetSystemFactoryDefault(self):
-        self.devicemgmt.SetSystemFactoryDefault('Hard')
+        conf = self.operations['FactoryDefault']
+        total = 100
+        timeout = 10
+        def_ip = False
+        if 'method' in conf:
+            self._request(**conf)
+        else:
+            self.devicemgmt.SetSystemFactoryDefault('Hard')
+        with tqdm(total=total,
+                  desc='Идёт сброс к заводским настройкам',
+                  bar_format=BAR_FMT) as pbar:
+            for i in range(timeout):
+                ip = find_ip()
+                if ip:
+                    def_ip = ip
+                    pbar.update(total - (i * (total / timeout)))
+                    break
+                pbar.update(total / timeout)
+                time.sleep(1)
+        return def_ip
 
     def SystemReboot(self):
         self.devicemgmt.SystemReboot()
 
-    def get_info_after_setup(self):
-
-        def get_ip():
-            ip = RosOldApi().get_lease_info(self.mac)
-            return ip
-
-        while not get_ip():
-            time.sleep(1)
+    def get_info_after_setup(self, ip=None):
+        ip = ip if ip else get_ip(self.mac)
         info = (f'\nModel: {self.model}\n'
                 f'Firmware: {self.firmware}\n'
                 f'MAC-address: {self.mac}\n'
-                f'RTSP uri: rtsp://admin:password'
-                f"@{get_ip()[0].get('address')}:554{self.stream_uri}\n")
+                f'RTSP uri: rtsp://admin:admin'
+                f"@{ip}:554{self.stream_uri}\n")
         return info
 
     def setup_camera(self):
         msg = ''
-        if self.operations:
-            errors = ''
-            for operation in tqdm(self.operations, bar_format=BAR_FMT):
-                method = getattr(self, operation, None)
-                if method is None:
-                    pass
-                elif method() is False:
-                    errors += f'\nERROR! {operation}\n'
-            if not errors:
-                self._samosbor()
-            msg += errors
-            msg += self.get_info_after_setup()
-        else:
-            if not os.path.exists('log'):
-                os.makedirs('log')
-            with open('log/models_not_found.log', 'a+') as f:
-                d_t = dt.now().strftime('%Y-%m-%d_%H:%M')
-                f.write(f'{d_t} - {self.model}\n')
-            raise ModelNotFound(f'Модель {self.model} не найдена')
+        errors = ''
+        for operation in tqdm(self.operations, bar_format=BAR_FMT):
+            method = getattr(self, operation, None)
+            if method is None:
+                pass
+            elif method() is False:
+                errors += f'\nERROR! {operation}\n'
+        if not errors:
+            self._samosbor()
+        msg += errors
+        msg += self.get_info_after_setup()
         return msg
 
 
 if __name__ == '__main__':
-    from utils import check_ip
-
     try:
-        ip = check_ip()
+        ip = find_ip()
         if ip:
             setup = Camera(host=ip)
             print(setup.setup_camera())

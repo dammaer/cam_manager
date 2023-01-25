@@ -112,5 +112,6 @@
                 "DHCP": true
             }
         }
-    }
+    },
+    "FactoryDefault": {}
 }

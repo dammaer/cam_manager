@@ -117,7 +117,7 @@ class TestingOnvif(Camera):
 
 
 if __name__ == '__main__':
-    test = TestingOnvif(host='192.168.13.74',
+    test = TestingOnvif(host='192.168.13.62',
                         passwd=ADMIN_PASSWD,
                         check=True)
     print(test.GetVideoEncoderConfiguration())

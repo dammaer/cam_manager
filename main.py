@@ -12,23 +12,31 @@ from datetime import datetime as dt
 from onvif import ONVIFError
 
 from camera import Camera, ModelNotFound
-from env import SWI_IP
+from env import SWI_IP, OTHER_PASSWDS
 from poe_switch import SwiFail, Switch
-from utils import (check_ip, host_ping, input_with_timeout,
+from utils import (find_ip, get_ip, host_ping,
+                   input_with_timeout, mac_check,
                    mcast_recv, mcast_send)
+from utils import MacAddressBad
 
 
 def single_setup():
     try:
-        ip = check_ip(count=2)
+        ip = find_ip(count=2)
         if ip:
-            print(f'Дефолтный ip камеры: {ip}.\n')
+            print(f'Дефолтный ip камеры: {ip}.')
             setup = Camera(host=ip)
             print(setup.setup_camera())
         else:
-            print('\033[31mКамера с дефолтным ip не найдена.\033[0m')
+            print('\n\033[31mКамера с дефолтным ip не найдена.\033[0m\n')
     except ONVIFError as e:
         print(f'\033[31mНе удалось произвести настройку!\nПричина: {e}\033[0m')
+    except ModelNotFound as e:
+        error_msg = ('\nНе удалось произвести '
+                     f'настройку!\nПричина: {e}\n')
+        print(f'\033[31m{error_msg}\033[0m')
+    finally:
+        print('Выход из режима настройки одной камеры...')
 
 
 def multi_setup():
@@ -81,7 +89,7 @@ def multi_setup():
                 # Ждем 2 сек. после включения порта, чтобы камера
                 # гарантированно отвечала на пинг.
                 time.sleep(2)
-                ip = check_ip(count=2)
+                ip = find_ip(count=2)
                 result = f'\n-----{port} порт:-----'
                 if ip:
                     print(f'Дефолтный ip камеры: {ip}.')
@@ -112,11 +120,62 @@ def multi_setup():
         print('\033[32mНастройка завершена!\033[0m')
 
 
+def factory_reset():
+    mac = None
+    timeout = 40
+    print(f'Введите mac-адрес камеры (таймаут {timeout} сек.). 0 - отмена')
+    while True:
+        try:
+            mac = mac_check(input_with_timeout(timeout))
+            ip = get_ip(mac)
+            if ip:
+                found_passwd = len(OTHER_PASSWDS)
+                for passwd in OTHER_PASSWDS:
+                    try:
+                        camera = Camera(host=ip, passwd=passwd)
+                        def_ip = camera.SetSystemFactoryDefault()
+                        if def_ip:
+                            print(camera.get_info_after_setup(ip=def_ip))
+                            break
+                        else:
+                            print('\n\033[33mПосле попытки сброса, '
+                                  'камера не вернула дефолтный ip!\n'
+                                  'Скорее всего произошел сброс всех '
+                                  'параметров, но без настроек сети и '
+                                  'пользоваталей.\033[0m\n')
+                            break
+                    except ONVIFError:
+                        found_passwd -= 1
+                    except ModelNotFound as e:
+                        error_msg = ('\nНе удалось произвести '
+                                     f'настройку!\nПричина: {e}\n')
+                        print(f'\033[31m{error_msg}\033[0m')
+                        break
+                if not found_passwd:
+                    print('\n\033[31mНи один из известных паролей '
+                          'не подошёл!\033[0m\n')
+                    break
+            else:
+                print('\n\033[33mКамера не получает ip по DHCP '
+                      'от офисного роутера!\033[0m\n')
+                break
+        except MacAddressBad as e:
+            zero = e.args[0]
+            if zero.isdigit() and int(zero) == 0:
+                break
+            print(f'\033[33m{e.args[1]} Попробуйте ещё раз.\033[0m')
+        finally:
+            if mac:
+                print('Выход из режима сброса...')
+                break
+
+
 def setup():
     timeout = 30
     msg = (f'\nВыберите режим настройки (таймаут {timeout} сек.):\n'
            '1 - настройка одной камеры\n'
            '2 - настройка нескольких камер с использованием POE коммутатора\n'
+           '3 - сброс камеры к заводским настройкам\n'
            '0 - завершение работы')
     print(msg)
     while True:
@@ -130,6 +189,9 @@ def setup():
                     print(msg)
                 case 2:
                     multi_setup()
+                    print(msg)
+                case 3:
+                    factory_reset()
                     print(msg)
                 case _:
                     print('\033[33mВведите предложенные варианты!\033[0m')
