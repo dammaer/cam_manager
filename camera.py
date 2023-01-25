@@ -14,7 +14,7 @@ from zeep import helpers
 from env import ADMIN_PASSWD, CONF_DIR, NTP_DNS, VIEWER_PASSWD
 from utils import get_ip, find_ip
 
-BAR_FMT = '{l_bar}{bar:50}'
+BAR_FMT = '{l_bar}{bar:30}'
 
 
 class ModelNotFound(Exception):
@@ -286,7 +286,6 @@ class Camera():
         else:
             self.devicemgmt.SetSystemFactoryDefault('Hard')
         with tqdm(total=total,
-                  desc='Идёт сброс к заводским настройкам',
                   bar_format=BAR_FMT) as pbar:
             for i in range(timeout):
                 ip = find_ip()
