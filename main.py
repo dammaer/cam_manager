@@ -12,9 +12,9 @@ from datetime import datetime as dt
 from onvif import ONVIFError
 
 from camera import Camera, ModelNotFound
-from env import SWI_IP, OTHER_PASSWDS
+from env import SWI_IP
 from poe_switch import SwiFail, Switch
-from utils import (find_ip, get_ip, host_ping,
+from utils import (brute_force, find_ip, get_ip, host_ping,
                    input_with_timeout, mac_check,
                    mcast_recv, mcast_send)
 from utils import MacAddressBad
@@ -129,9 +129,10 @@ def factory_reset():
             mac = mac_check(input_with_timeout(timeout))
             ip = get_ip(mac)
             if ip:
-                found_passwd = len(OTHER_PASSWDS)
-                for passwd in OTHER_PASSWDS:
+                bf = brute_force()
+                while True:
                     try:
+                        passwd = next(bf)
                         camera = Camera(host=ip, passwd=passwd)
                         def_ip = camera.SetSystemFactoryDefault()
                         if def_ip:
@@ -145,16 +146,16 @@ def factory_reset():
                                   'пользоваталей.\033[0m\n')
                             break
                     except ONVIFError:
-                        found_passwd -= 1
+                        pass
                     except ModelNotFound as e:
                         error_msg = ('\nНе удалось произвести '
                                      f'настройку!\nПричина: {e}\n')
                         print(f'\033[31m{error_msg}\033[0m')
                         break
-                if not found_passwd:
-                    print('\n\033[31mНи один из известных паролей '
-                          'не подошёл!\033[0m\n')
-                    break
+                    except StopIteration:
+                        print('\n\033[31mНи один из известных '
+                              'паролей не подошёл!\033[0m\n')
+                        break
             else:
                 print('\n\033[33mКамера не получает ip по DHCP '
                       'от офисного роутера!\033[0m\n')

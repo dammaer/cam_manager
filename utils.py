@@ -6,7 +6,7 @@ import time
 
 from icmplib import multiping, ping
 
-from env import DEF_IP
+from env import DEF_IP, OTHER_PASSWDS
 from ros_old_api import RosOldApi
 
 HOSTS = DEF_IP
@@ -48,6 +48,11 @@ def get_ip(mac):
         count += 1
         time.sleep(1)
     return ip
+
+
+def brute_force():
+    for passwd in iter(OTHER_PASSWDS):
+        yield passwd
 
 
 def inputTimeOutHandler(signum, frame):
