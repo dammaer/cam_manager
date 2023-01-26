@@ -80,6 +80,20 @@ def mac_check(mac):
         raise MacAddressBad(mac, 'Некорректно введён mac-адрес!')
 
 
+def get_local_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.settimeout(0)
+    try:
+        # doesn't even have to be reachable
+        s.connect(('1.1.1.1', 1))
+        ip = s.getsockname()[0]
+    except Exception:
+        ip = '127.0.0.1'
+    finally:
+        s.close()
+    return ip
+
+
 def mcast_send():
     MULTICAST_TTL = 1
 
@@ -87,7 +101,7 @@ def mcast_send():
     sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, MULTICAST_TTL)
     try:
         while True:
-            sock.sendto(b'RUN', (MCAST_GRP, MCAST_PORT))
+            sock.sendto(get_local_ip().encode(), (MCAST_GRP, MCAST_PORT))
             time.sleep(0.5)
     except KeyboardInterrupt:
         pass
@@ -102,7 +116,6 @@ def mcast_recv():
 
     sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
     try:
-        if sock.recv(1024):
-            return True
+        return sock.recv(1024).decode()
     except TimeoutError:
         return False

@@ -206,9 +206,10 @@ def setup():
 if __name__ == '__main__':
     import multiprocessing
 
-    if mcast_recv():
+    is_running = mcast_recv()
+    if is_running:
         print('\033[33mПроцесс настройки уже выполняется '
-              'одним из пользователей!\033[0m')
+              f'одним из пользователей на хосте {is_running}!\033[0m')
     else:
         try:
             process = multiprocessing.Process(
