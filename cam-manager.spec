@@ -44,4 +44,7 @@ exe = EXE(
 )
 
 import shutil
-shutil.copytree('configs', '{0}/configs'.format(DISTPATH))
+try:
+    shutil.copytree('configs', '{0}/configs'.format(DISTPATH))
+except FileExistsError:
+    print('Папка configs уже добавлена!')

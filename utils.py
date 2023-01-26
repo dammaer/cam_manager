@@ -99,12 +99,9 @@ def mcast_send():
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, MULTICAST_TTL)
-    try:
-        while True:
-            sock.sendto(get_local_ip().encode(), (MCAST_GRP, MCAST_PORT))
-            time.sleep(0.5)
-    except KeyboardInterrupt:
-        pass
+    while True:
+        sock.sendto(get_local_ip().encode(), (MCAST_GRP, MCAST_PORT))
+        time.sleep(0.5)
 
 
 def mcast_recv():

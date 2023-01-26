@@ -211,17 +211,16 @@ if __name__ == '__main__':
         print('\033[33mПроцесс настройки уже выполняется '
               f'одним из пользователей на хосте {is_running}!\033[0m')
     else:
+        process = multiprocessing.Process(
+            target=mcast_send)
+        process.start()
         try:
-            process = multiprocessing.Process(
-                target=mcast_send)
-            process.start()
             setup()
-            process.kill()
         except SwiFail as e:
             print(f'\033[33m{e}\nНастройка прервана!\033[0m')
         except KeyboardInterrupt:
+            process.kill()
             print('\n\033[33mНастройка прервана!\033[0m')
-            try:
-                sys.exit(1)
-            except SystemExit:
-                os._exit(1)
+            sys.exit()
+        finally:
+            process.kill()
