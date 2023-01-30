@@ -394,15 +394,13 @@ class Camera():
 
 
 if __name__ == '__main__':
-    # try:
-    #     ip = find_ip()
-    #     if ip:
-    #         setup = Camera(host=ip)
-    #         print(setup.setup_camera())
-    #     else:
-    #         print('\033[31mКамера с дефолтным ip не найдена.\033[0m')
-    # except ONVIFError as e:
-    #     print('\033[31mНе удалось произвести настройку!\n'
-    #           f'Причина: {e}\033[0m')
-    setup = Camera(host='192.168.1.120')
-    print(setup.FirmwareUpgrade())
+    try:
+        ip = find_ip()
+        if ip:
+            setup = Camera(host=ip)
+            print(setup.setup_camera())
+        else:
+            print('\033[31mКамера с дефолтным ip не найдена.\033[0m')
+    except ONVIFError as e:
+        print('\033[31mНе удалось произвести настройку!\n'
+              f'Причина: {e}\033[0m')
