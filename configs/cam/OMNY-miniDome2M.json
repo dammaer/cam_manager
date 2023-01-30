@@ -2,6 +2,9 @@
     "Firmware": {
         "IPCAM_V2.12.170523": {}
     },
+    "CamParams": {
+        "auth": "Basic"
+    },
     "SetVideoEncoderConfiguration0": {
         "Configuration": {
             "token": null,
@@ -74,7 +77,7 @@
     },
     "DeleteOSD": {
         "method": "POST",
-        "url": "goform/formVideoStream",
+        "url": "/goform/formVideoStream",
         "data": {
             "MirrorEnabledHor": "false",
             "MirrorEnabledVer": "false",
@@ -89,24 +92,22 @@
             "root_Image_DateFormat": 2,
             "root_Image_TimeFormat": 0,
             "AnalogEnabled": "false"
-        },
-        "auth": "Basic"
+        }
     },
     "SetAudioEncoderConfiguration": {
         "method": "POST",
-        "url": "goform/formAudio",
+        "url": "/goform/formAudio",
         "data": {
             "root_Audio_Enabled": "no",
             "root_Audio_InputVol": "50",
             "root_Audio_OutputVol": "50",
             "permit": "yes",
             "audioInMode": "auto"
-        },
-        "auth": "Basic"
+        }
     },
     "SetNTP": {
         "method": "POST",
-        "url": "goform/formDate",
+        "url": "/goform/formDate",
         "data": {
             "root_Time_POSIXTimeZone": "MSK-3MSD,M3.5.0,M10.5.0/3",
             "root_Time_DST_Enabled": "yes",
@@ -118,8 +119,7 @@
             "formType": "formType2",
             "action": "set_time",
             "dummy": ""
-        },
-        "auth": "Basic"
+        }
     },
     "CreateUsers": {
         "User": {

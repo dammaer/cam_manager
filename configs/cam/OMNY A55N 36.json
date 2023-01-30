@@ -9,6 +9,9 @@
             "SetNTP": "1"
         }
     },
+    "CamParams": {
+        "auth": "Digest"
+    },
     "SetVideoEncoderConfiguration0": {
         "Configuration": {
             "token": null,
@@ -83,12 +86,11 @@
     "SetSystemDateAndTime": {
         "1": {
             "method": "PUT",
-            "url": "ISAPI/System/time",
+            "url": "/ISAPI/System/time",
             "data": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Time>\n<timeMode>manual</timeMode>\n<localTime></localTime>\n<timeZone>CST+3:00:00</timeZone>\n</Time>",
             "headers": {
                 "Content-Type": "application/xml"
-            },
-            "auth": "Digest"
+            }
         },
         "2": {
             "DateTimeType": "NTP",
@@ -101,12 +103,11 @@
     "SetNTP": {
         "1": {
             "method": "PUT",
-            "url": "CGI/System/Network/NTP",
+            "url": "/CGI/System/Network/NTP",
             "data": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><NTP>\n<NTPServer>ntp.lanta.me</NTPServer>\n<PortNO>123</PortNO>\n<Inerval>60</Inerval>\n</NTP>",
             "headers": {
                 "Content-Type": "application/xml"
-            },
-            "auth": "Digest"
+            }
         },
         "2": {
             "FromDHCP": false,
@@ -146,7 +147,6 @@
     },
     "FactoryDefault": {
         "method": "PUT",
-        "url": "ISAPI/System/factoryReset/type/1",
-        "auth": "Digest"
+        "url": "/ISAPI/System/factoryReset/type/1"
     }
 }

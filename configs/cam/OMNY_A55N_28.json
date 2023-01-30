@@ -4,6 +4,9 @@
             "SetNTP": "1"
         }
     },
+    "CamParams": {
+        "auth": "Digest"
+    },
     "SetVideoEncoderConfiguration0": {
         "Configuration": {
             "token": null,
@@ -85,12 +88,11 @@
     "SetNTP": {
         "1": {
             "method": "PUT",
-            "url": "CGI/System/Network/NTP",
+            "url": "/CGI/System/Network/NTP",
             "data": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><NTP>\n<NTPServer>ntp.lanta.me</NTPServer>\n<PortNO>123</PortNO>\n<Inerval>60</Inerval>\n</NTP>",
             "headers": {
                 "Content-Type": "application/xml"
-            },
-            "auth": "Digest"
+            }
         },
         "2": {
             "FromDHCP": false,
@@ -130,7 +132,6 @@
     },
     "FactoryDefault": {
         "method": "PUT",
-        "url": "ISAPI/System/factoryReset/type/1",
-        "auth": "Digest"
+        "url": "/ISAPI/System/factoryReset/type/1"
     }
 }

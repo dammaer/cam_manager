@@ -11,10 +11,13 @@ from requests.auth import HTTPBasicAuth, HTTPDigestAuth
 from tqdm import tqdm
 from zeep import helpers
 
-from env import ADMIN_PASSWD, CONF_DIR, NTP_DNS, VIEWER_PASSWD
-from utils import get_ip, find_ip
+from env import ADMIN_PASSWD, CONF_DIR, FW_DIR, NTP_DNS, VIEWER_PASSWD
+from utils import find_ip, get_ip, host_ping
 
-BAR_FMT = '{l_bar}{bar:30}'
+# progress bar params
+BAR_FMT = '{l_bar}{bar}'
+NCOLS = 30
+COLOUR = 'CYAN'
 
 
 class ModelNotFound(Exception):
@@ -23,12 +26,13 @@ class ModelNotFound(Exception):
 
 class Camera():
     operations = None
+    session = None
     firmware_new = False
     conf_numbers = None
     selected_conf = {}
 
     def __init__(self, host, port=80, user='admin',
-                 passwd='admin', debug=False):
+                 passwd='admin', debug=False, upgrade=True):
         self.host = host
         self.port = port
         self.user = user
@@ -46,6 +50,7 @@ class Camera():
         self.deviceinfo = self.devicemgmt.GetDeviceInformation()
         self.model = self.deviceinfo.Model
         self.firmware = self.deviceinfo.FirmwareVersion
+        self.upgrade = upgrade
         self.file = CONF_DIR + f'/cam/{self.model}.json'
         try:
             if not debug:
@@ -60,8 +65,9 @@ class Camera():
                 f.write(f'{d_t} - {self.model}\n')
             raise ModelNotFound(f'Модель {self.model} не найдена')
 
-    def _request(self, method, url, data=None, headers=None, auth=None):
-        base_url = f"http://{self.host}/{url}"
+    def _request(self, method, url, data=None,
+                 headers=None, files=None):
+        base_url = f"http://{self.host}{url}"
 
         def http_auth(type):
             match type:
@@ -71,8 +77,13 @@ class Camera():
                     return HTTPDigestAuth(self.user, self.passwd)
                 case _:
                     return None
-        result = requests.request(method, url=base_url, data=data,
-                                  headers=headers, auth=http_auth(auth))
+
+        if self.session is None:
+            auth = self.operations['CamParams'].get('auth')
+            self.session = requests.Session()
+            self.session.auth = http_auth(auth)
+        result = self.session.request(method, url=base_url, data=data,
+                                      headers=headers, files=files)
         if result.status_code != 200:
             return False
 
@@ -108,13 +119,60 @@ class Camera():
 
     def GetFirmwareConfig(self):
         firmware = self.operations['Firmware']
+        basic_fw = self.operations['CamParams'].get('basicfirmware')
         self.conf_numbers = firmware.get(self.firmware)
         if self.firmware in firmware:
             print('\n\033[32mВерсия прошивки известна!\033[0m\n')
+        elif basic_fw and self.upgrade:
+            if self.firmware < basic_fw:
+                print('\n\033[33mСтарая версия прошивки!\033[0m\n')
+                if not os.path.exists('firmware'):
+                    print('\033[31mПапка с прошивками не найдена!\n'
+                          'Будет выполнена только конфигурация.\033[0m\n')
+                    return
+                self.firmware = basic_fw
+                self.FirmwareUpgrade()
         else:
             self.firmware_new = True
-            print(f'\n\033[33mНовая прошивка камеры: '
+            print('\n\033[33mНеизвестная прошивка камеры: '
                   f'{self.firmware}!\033[0m\n')
+
+    def FirmwareUpgrade(self):
+        total = 100
+        timeout = 35
+        file = None
+        params = self.operations['FirmwareUpgradeParams']
+        with open(FW_DIR + '/fw.json', 'r') as f:
+            file = json.load(f)
+        fw_id = file.get(self.model)
+        fw_name = file['fw'].get(fw_id)
+
+        def upgrade():
+            for p in params:
+                if p.get('files'):
+                    p['files'] = {"file": open(FW_DIR + f'/{fw_name}', 'rb')}
+                    self._request(**p)
+                self._request(**p)
+
+        process = multiprocessing.Process(
+            target=upgrade)
+        with tqdm(total=total,
+                  bar_format=BAR_FMT,
+                  ncols=NCOLS, colour=COLOUR,
+                  desc='Updating') as pbar:
+            not_alive = False
+            process.start()
+            for i in range(timeout):
+                ping = host_ping(host=self.host, count=3)
+                if not ping.is_alive and not not_alive:
+                    not_alive = True
+                elif not_alive and ping.is_alive:
+                    time.sleep(10)
+                    pbar.update(total - (i * (total / timeout)))
+                    process.kill()
+                    break
+                pbar.update(total / timeout)
+                time.sleep(1)
 
     def GetStreamUri(self):
         stream_uri = self.media.GetStreamUri(
@@ -179,7 +237,7 @@ class Camera():
     @_selecting_config
     def SetVideoEncoderConfiguration0(self, *args):
         conf = args[0]
-        if 'method ' in conf:
+        if 'method' in conf:
             self._request(**conf)
         else:
             vec_token0 = self.media_tokens[0].VideoEncoderConfiguration.token
@@ -193,7 +251,7 @@ class Camera():
     @_selecting_config
     def SetVideoEncoderConfiguration1(self, *args):
         conf = args[0]
-        if 'method ' in conf:
+        if 'method' in conf:
             self._request(**conf)
         else:
             vec_token1 = self.media_tokens[1].VideoEncoderConfiguration.token
@@ -288,7 +346,9 @@ class Camera():
         else:
             self.devicemgmt.SetSystemFactoryDefault('Hard')
         with tqdm(total=total,
-                  bar_format=BAR_FMT) as pbar:
+                  bar_format=BAR_FMT,
+                  ncols=NCOLS, colour=COLOUR,
+                  desc='Resetting') as pbar:
             for i in range(timeout):
                 ip = find_ip()
                 if ip:
@@ -314,7 +374,13 @@ class Camera():
     def setup_camera(self):
         msg = ''
         errors = ''
-        for operation in tqdm(self.operations, bar_format=BAR_FMT):
+        for operation in tqdm(
+            self.operations,
+            bar_format=BAR_FMT,
+            ncols=NCOLS,
+            colour=COLOUR,
+            desc='Configuration'
+        ):
             method = getattr(self, operation, None)
             if method is None:
                 pass
@@ -328,12 +394,15 @@ class Camera():
 
 
 if __name__ == '__main__':
-    try:
-        ip = find_ip()
-        if ip:
-            setup = Camera(host=ip)
-            print(setup.setup_camera())
-        else:
-            print('\033[31mКамера с дефолтным ip не найдена.\033[0m')
-    except ONVIFError as e:
-        print(f'\033[31mНе удалось произвести настройку!\nПричина: {e}\033[0m')
+    # try:
+    #     ip = find_ip()
+    #     if ip:
+    #         setup = Camera(host=ip)
+    #         print(setup.setup_camera())
+    #     else:
+    #         print('\033[31mКамера с дефолтным ip не найдена.\033[0m')
+    # except ONVIFError as e:
+    #     print('\033[31mНе удалось произвести настройку!\n'
+    #           f'Причина: {e}\033[0m')
+    setup = Camera(host='192.168.1.120')
+    print(setup.FirmwareUpgrade())

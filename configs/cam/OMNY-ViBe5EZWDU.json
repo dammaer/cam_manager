@@ -1,5 +1,8 @@
 {
     "Firmware": {},
+    "CamParams": {
+        "auth": "Basic"
+    },
     "SetVideoEncoderConfiguration0": {
         "Configuration": {
             "token": null,
@@ -73,15 +76,13 @@
     "DeleteOSD": {},
     "SetAudioEncoderConfiguration": {
         "method": "POST",
-        "url": "action/set?subject=audioenc",
-        "data": "<?xml version=\"1.0\" encoding=\"utf-8\"?><request><audioenc ver=\"2.0\"><active>0</active><codec>0</codec><sample>8000</sample><bitwidth>16</bitwidth><bitrate>16000</bitrate><channel>0</channel><input>1</input></audioenc></request>",
-        "auth": "Basic"
+        "url": "/action/set?subject=audioenc",
+        "data": "<?xml version=\"1.0\" encoding=\"utf-8\"?><request><audioenc ver=\"2.0\"><active>0</active><codec>0</codec><sample>8000</sample><bitwidth>16</bitwidth><bitrate>16000</bitrate><channel>0</channel><input>1</input></audioenc></request>"
     },
     "SetNTP": {
         "method": "POST",
-        "url": "action/set?subject=systime",
-        "data": "<?xml version=\"1.0\" encoding=\"utf-8\"?><request><systime ver=\"2.0\"><mode>1</mode><tz>MSK-3</tz><dst><active>0</active></dst><ntp><host>ntp.lanta.me</host><port>123</port><interval>1</interval></ntp></systime></request>",
-        "auth": "Basic"
+        "url": "/action/set?subject=systime",
+        "data": "<?xml version=\"1.0\" encoding=\"utf-8\"?><request><systime ver=\"2.0\"><mode>1</mode><tz>MSK-3</tz><dst><active>0</active></dst><ntp><host>ntp.lanta.me</host><port>123</port><interval>1</interval></ntp></systime></request>"
     },
     "CreateUsers": {
         "User": {
