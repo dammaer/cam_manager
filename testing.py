@@ -4,6 +4,8 @@ from zeep import helpers
 from camera import Camera
 from env import ADMIN_PASSWD, NTP_DNS
 
+DEF_PASSWD = 'admin'
+
 OK = '\033[32mOK\033[0m'
 ERROR = '\033[93mERROR'
 FAIL = '\033[31mFAIL'
@@ -23,6 +25,7 @@ class TestingOnvif(Camera):
     def GetInfo(self):
         info = (f'Model: {self.model}\n'
                 f'Firmware: {self.firmware}\n'
+                f'HardwareId: {self.deviceinfo.HardwareId}\n'
                 f'MAC-address: {self.mac}\n'
                 f'RTSP uri: {self.GetStreamUri()}\n'
                 )
@@ -72,6 +75,9 @@ class TestingOnvif(Camera):
         except ONVIFError:
             return f'OSD - {FAIL} (не поддерживается){ENDC}'
 
+    def GetDNS(self):
+        return self.devicemgmt.GetDNS()
+
     def GetNTP(self):
         resp = self.devicemgmt.GetNTP()
         if self.check:
@@ -112,9 +118,6 @@ class TestingOnvif(Camera):
                         f'(пользователь viewer не создан){ENDC}\n')
         return resp
 
-    def GetDNS(self):
-        return self.devicemgmt.GetDNS()
-
 
 if __name__ == '__main__':
     """
@@ -126,15 +129,16 @@ if __name__ == '__main__':
         False - полный вывод всех параметров
                 (debug=True)
     """
-    test = TestingOnvif(host='192.168.13.234',
+    test = TestingOnvif(host='192.168.13.105',
                         passwd=ADMIN_PASSWD,
-                        check=True,
+                        check=False,
                         debug=False)
     print(test.GetInfo())
     try:
         print(test.GetVideoEncoderConfiguration())
         print(test.GetVideoEncoderConfiguration(vec=1))
         print(test.GetOSDs())
+        print(test.GetDNS())
         print(test.GetNTP())
         print(test.GetSystemDateAndTime())
         print(test.GetUsers())

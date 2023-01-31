@@ -26,7 +26,7 @@ def single_setup():
         if ip:
             print(f'Дефолтный ip камеры: {ip}.')
             setup = Camera(host=ip)
-            print(setup.setup_camera())
+            setup.setup_camera()
         else:
             print('\n\033[31mКамера с дефолтным ip не найдена.\033[0m\n')
     except ONVIFError as e:
@@ -94,9 +94,8 @@ def multi_setup():
                 if ip:
                     print(f'Дефолтный ip камеры: {ip}.')
                     try:
-                        ok_msg = Camera(host=ip).setup_camera()
-                        result += ok_msg
-                        print(ok_msg)
+                        msg = Camera(host=ip).setup_camera()
+                        result += msg
                     except ONVIFError as e:
                         error_msg = ('\nНе удалось произвести '
                                      f'настройку!\nПричина: {e}\n')

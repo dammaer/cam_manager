@@ -301,10 +301,6 @@ class Camera():
             self.devicemgmt.SetSystemDateAndTime(conf)
         return self.GetSystemDateAndTime()
 
-    def SetDNS(self):
-        dns = self.operations.get("SetDNS")
-        self._request(**dns)
-
     def CreateUsers(self):
         user = self.operations["CreateUsers"]
         user['User']['Password'] = VIEWER_PASSWD
@@ -315,6 +311,13 @@ class Camera():
         user = self.operations["SetUser"]
         user['User']['Password'] = ADMIN_PASSWD
         self.devicemgmt.SetUser(user)
+
+    def SetDNS(self):
+        conf = self.operations["SetDNS"]
+        if 'method' in conf:
+            self._request(**conf)
+        else:
+            self.devicemgmt.SetDNS({'FromDHCP': True})
 
     def SetNetworkInterfaces(self):
         net = self.operations["SetNetworkInterfaces"]
@@ -388,8 +391,10 @@ class Camera():
                 errors += f'\nERROR! {operation}\n'
         if not errors:
             self._samosbor()
+        info = self.get_info_after_setup()
+        print(f'\033[31m{errors}\033[0m{info}')
         msg += errors
-        msg += self.get_info_after_setup()
+        msg += info
         return msg
 
 
