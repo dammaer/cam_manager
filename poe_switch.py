@@ -16,7 +16,7 @@ class Switch():
 
     def __init__(self):
         try:
-            self.telnet = pexpect.spawn(f"telnet {SWI_IP}", timeout=5,
+            self.telnet = pexpect.spawn(f"telnet {SWI_IP}", timeout=30,
                                         encoding="utf-8")
             self.telnet.expect("login")
             self.telnet.sendline(SWI_LOGIN)

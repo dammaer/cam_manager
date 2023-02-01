@@ -6,7 +6,6 @@ if not os.path.exists('configs'):
           'директория configs c конфигурационными файлами!\n\033[0m')
     sys.exit()
 
-import time
 from datetime import datetime as dt
 
 from onvif import ONVIFError
@@ -16,7 +15,7 @@ from env import SWI_IP
 from poe_switch import SwiFail, Switch
 from utils import (brute_force, find_ip, get_ip, host_ping,
                    input_with_timeout, mac_check,
-                   mcast_recv, mcast_send)
+                   mcast_recv, mcast_send, sleep_bar)
 from utils import MacAddressBad
 
 
@@ -81,14 +80,10 @@ def multi_setup():
             f.write(cam_count_msg)
             for port in cam_on_ports:
                 print(f'\033[35mНастраиваем камеру на {port} порту.\033[0m')
-                t = 3 if cam_on_ports.index(port) != 0 else 0
-                # Ждём 3 сек. так как предыдущая настроенная камера
-                # может все еще пинговаться по дефолтному ip.
-                time.sleep(t)
                 switch.enable_port(port)
-                # Ждем 2 сек. после включения порта, чтобы камера
+                # Ждем 5 сек. после включения порта, чтобы камера
                 # гарантированно отвечала на пинг.
-                time.sleep(2)
+                sleep_bar(5)
                 ip = find_ip(count=2)
                 result = f'\n-----{port} порт:-----'
                 if ip:
@@ -96,6 +91,7 @@ def multi_setup():
                     try:
                         msg = Camera(host=ip).setup_camera()
                         result += msg
+                        switch.disable_port(port)
                     except ONVIFError as e:
                         error_msg = ('\nНе удалось произвести '
                                      f'настройку!\nПричина: {e}\n')
@@ -121,7 +117,7 @@ def multi_setup():
 
 def factory_reset():
     mac = None
-    timeout = 40
+    timeout = 50
     print(f'Введите mac-адрес камеры (таймаут {timeout} сек.). 0 - отмена')
     while True:
         try:

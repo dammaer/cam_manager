@@ -5,6 +5,7 @@ import struct
 import time
 
 from icmplib import multiping, ping
+from tqdm import trange
 
 from env import DEF_IP, OTHER_PASSWDS
 from ros_old_api import RosOldApi
@@ -46,13 +47,23 @@ def get_ip(mac):
             ip = lease[0]['address']
             break
         count += 1
-        time.sleep(1)
+        time.sleep(2)
     return ip
 
 
 def brute_force():
     for passwd in iter(OTHER_PASSWDS):
         yield passwd
+
+
+def sleep_bar(sec):
+    t = trange(sec, leave=False,
+               bar_format='{postfix[0]} {postfix[1][value]} {postfix[2]}',
+               postfix=["Wait", dict(value=sec), 'sec.'])
+    for _ in t:
+        time.sleep(1)
+        t.postfix[1]["value"] -= 1
+        t.update()
 
 
 def inputTimeOutHandler(signum, frame):

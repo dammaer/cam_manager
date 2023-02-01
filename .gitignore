@@ -9,3 +9,4 @@ build/
 log/
 cam_clients_script/
 settings.ini
+wsdl_/

@@ -129,18 +129,18 @@ if __name__ == '__main__':
         False - полный вывод всех параметров
                 (debug=True)
     """
-    test = TestingOnvif(host='192.168.13.105',
+    test = TestingOnvif(host='192.168.13.118', port=80,
                         passwd=ADMIN_PASSWD,
                         check=False,
-                        debug=False)
+                        debug=True)
     print(test.GetInfo())
     try:
         print(test.GetVideoEncoderConfiguration())
-        print(test.GetVideoEncoderConfiguration(vec=1))
-        print(test.GetOSDs())
-        print(test.GetDNS())
-        print(test.GetNTP())
-        print(test.GetSystemDateAndTime())
-        print(test.GetUsers())
+        # print(test.GetVideoEncoderConfiguration(vec=1))
+        # print(test.GetOSDs())
+        # print(test.GetDNS())
+        # print(test.GetNTP())
+        # print(test.GetSystemDateAndTime())
+        # print(test.GetUsers())
     except TypeError:
         pass

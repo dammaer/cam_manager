@@ -15,6 +15,11 @@ class RosOldApi:
         return self.api.get_resource(
             '/ip/dhcp-server/lease').get(mac_address=mac_address)
 
+    def remove_lease(self, id):
+        self.api.get_binary_resource(
+            '/ip/dhcp-server/lease').call('remove',
+                                          {'numbers': id})
+
     def __del__(self):
         self.connection.disconnect()
 
