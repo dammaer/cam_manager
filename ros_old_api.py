@@ -1,13 +1,15 @@
 import routeros_api
 
-from env import RB_IP, RB_LOGIN, RB_PASSWD
+from env import RB_IP, RB_LOGIN, RB_PASSWD, RB_ROS_VERSION
 
 
 class RosOldApi:
     def __init__(self):
-        self.connection = routeros_api.RouterOsApiPool(RB_IP,
-                                                       username=RB_LOGIN,
-                                                       password=RB_PASSWD)
+        self.connection = routeros_api.RouterOsApiPool(
+            RB_IP,
+            username=RB_LOGIN,
+            password=RB_PASSWD,
+            plaintext_login=RB_ROS_VERSION >= '6.43')
         self.api = self.connection.get_api()
 
     def get_lease_info(self, mac_address):

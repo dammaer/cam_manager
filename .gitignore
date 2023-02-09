@@ -2,6 +2,7 @@
 venv
 .vscode/
 temp.py
+testing.py
 env.py
 __pycache__/
 dist/

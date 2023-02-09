@@ -1,0 +1,47 @@
+{
+    "Firmware": {
+        "ONVIF_V3.0.0.20190625": {
+            "SetNTP": "1"
+        }
+    },
+    "CamParams": {
+        "auth": "Digest",
+        "services_versions": {
+            "media": 2
+        }
+    },
+    "SetVideoEncoderConfiguration0": {
+        "Encoding": "H264",
+        "Width": 1920,
+        "Height": 1080,
+        "BitrateLimit": 2048
+    },
+    "SetVideoEncoderConfiguration1": {
+        "Encoding": "H264",
+        "Width": 640,
+        "Height": 360,
+        "BitrateLimit": 512
+    },
+    "DeleteOSD": {},
+    "SetSystemDateAndTime": {
+        "TZ": "UTC-3:0"
+    },
+    "SetNTP": {
+        "1": {
+            "http": "2"
+        },
+        "2": {}
+    },
+    "CreateUsers": {
+        "Username": "viewer",
+        "UserLevel": "Extended"
+    },
+    "SetUser": {
+        "Username": "admin",
+        "UserLevel": "Administrator"
+    },
+    "SetNetworkInterfaces": {},
+    "FactoryDefault": {
+        "http": "1"
+    }
+}

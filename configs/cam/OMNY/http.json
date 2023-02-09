@@ -1,0 +1,118 @@
+{
+    "SetVideoEncoderConfiguration0": {},
+    "SetVideoEncoderConfiguration1": {},
+    "DeleteOSD": {
+        "1": {
+            "method": "POST",
+            "url": "/goform/formVideoStream",
+            "data": {
+                "MirrorEnabledHor": "false",
+                "MirrorEnabledVer": "false",
+                "OverlayEnabled": "false",
+                "root_Image_I0_Text_DateEnabled": "yes",
+                "DateEnabled": "true",
+                "root_Image_I0_Text_ClockEnabled": "yes",
+                "ClockEnabled": "true",
+                "root_Image_I0_Text_String": "",
+                "TextEnabled": "false",
+                "ImageEnabled": "false",
+                "root_Image_DateFormat": 2,
+                "root_Image_TimeFormat": 0,
+                "AnalogEnabled": "false"
+            }
+        }
+    },
+    "SetAudioEncoderConfiguration": {
+        "1": {
+            "method": "POST",
+            "url": "/goform/formAudio",
+            "data": {
+                "root_Audio_Enabled": "no",
+                "root_Audio_InputVol": "50",
+                "root_Audio_OutputVol": "50",
+                "permit": "yes",
+                "audioInMode": "auto"
+            }
+        },
+        "2": {
+            "method": "POST",
+            "url": "/action/set?subject=audioenc",
+            "data": "<?xml version=\"1.0\" encoding=\"utf-8\"?><request><audioenc ver=\"2.0\"><active>0</active><codec>0</codec><sample>8000</sample><bitwidth>16</bitwidth><bitrate>16000</bitrate><channel>0</channel><input>1</input></audioenc></request>"
+        }
+    },
+    "SetSystemDateAndTime": {
+        "1": {
+            "method": "PUT",
+            "url": "/ISAPI/System/time",
+            "data": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Time>\n<timeMode>manual</timeMode>\n<localTime></localTime>\n<timeZone>CST+3:00:00</timeZone>\n</Time>",
+            "headers": {
+                "Content-Type": "application/xml"
+            }
+        }
+    },
+    "SetNTP": {
+        "1": {
+            "method": "POST",
+            "url": "/goform/formDate",
+            "data": {
+                "root_Time_POSIXTimeZone": "MSK-3MSD,M3.5.0,M10.5.0/3",
+                "root_Time_DST_Enabled": "yes",
+                "Time_DST_Enabled": "on",
+                "root_Time_SyncSource": "NTP",
+                "ntpServer": "ntp.lanta.me",
+                "interval": "day1",
+                "permit": "yes",
+                "formType": "formType2",
+                "action": "set_time",
+                "dummy": ""
+            }
+        },
+        "2": {
+            "method": "PUT",
+            "url": "/CGI/System/Network/NTP",
+            "data": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><NTP>\n<NTPServer>ntp.lanta.me</NTPServer>\n<PortNO>123</PortNO>\n<Inerval>60</Inerval>\n</NTP>",
+            "headers": {
+                "Content-Type": "application/xml"
+            }
+        },
+        "3": {
+            "method": "POST",
+            "url": "/action/set?subject=systime",
+            "data": "<?xml version=\"1.0\" encoding=\"utf-8\"?><request><systime ver=\"2.0\"><mode>1</mode><tz>MSK-3</tz><dst><active>0</active></dst><ntp><host>ntp.lanta.me</host><port>123</port><interval>1</interval></ntp></systime></request>"
+        }
+    },
+    "SetDNS": {
+        "1": {
+            "method": "PUT",
+            "url": "/ISAPI/System/Network/interfaces/IPandPort/1",
+            "data": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><NetworkInterface>\n<id>1</id>\n<Link>\n<manualSetDns>false</manualSetDns>\n<manualSetIPv6Dns>false</manualSetIPv6Dns>\n<duplex>full</duplex>\n<MTU>1500</MTU>\n<workmode>NetFaultTolerant</workmode>\n</Link>\n<IPAddress>\n<ipVersion>dual</ipVersion>\n<ipAddress>192.168.1.2</ipAddress>\n<subnetMask>255.255.255.0</subnetMask>\n<bitMask>64</bitMask>\n<DefaultGateway>\n<ipAddress>192.168.1.1</ipAddress>\n</DefaultGateway>\n<PrimaryDNS>\n<ipAddress></ipAddress>\n<ipv6Address></ipv6Address>\n</PrimaryDNS>\n<SecondaryDNS>\n<ipAddress></ipAddress>\n<ipv6Address></ipv6Address>\n</SecondaryDNS>\n</IPAddress>\n<Ipv6Mode>\n<ipv6AddressList>\n<v6Address>\n<id>2</id>\n<type>ra</type>\n<address/>\n<bitMask>0</bitMask>\n</v6Address>\n</ipv6AddressList>\n</Ipv6Mode>\n</NetworkInterface>",
+            "headers": {
+                "Content-Type": "application/xml"
+            }
+        }
+    },
+    "FirmwareUpgradeParams": {
+        "1": [
+            {
+                "method": "POST",
+                "url": "/action/upgrade?op=prepare"
+            },
+            {
+                "method": "POST",
+                "url": ":1224/action/upload?file=firmware",
+                "files": true
+            },
+            {
+                "method": "POST",
+                "url": "/action/upload?file=firmware",
+                "files": true
+            }
+        ]
+    },
+    "FactoryDefault": {
+        "1": {
+            "method": "PUT",
+            "url": "/ISAPI/System/factoryReset/type/1"
+        }
+    }
+}

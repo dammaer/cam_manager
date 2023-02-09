@@ -1,0 +1,33 @@
+{
+    "Firmware": {
+        "2.800.0000000.24.R, Build Date 2020-10-14": {}
+    },
+    "CamParams": {
+        "services_versions": {
+            "media": 1
+        }
+    },
+    "SetVideoEncoderConfiguration0": {
+        "Encoding": "H264",
+        "Width": 1920,
+        "Height": 1080,
+        "BitrateLimit": 2048
+    },
+    "SetVideoEncoderConfiguration1": {
+        "Encoding": "H264",
+        "Width": 704,
+        "Height": 576,
+        "BitrateLimit": 512
+    },
+    "DeleteOSD": {},
+    "SetSystemDateAndTime": {
+        "TZ": "GMT+03:00PDT,M1.1.1/00:00:00,M1.1.2/00:00:00"
+    },
+    "SetNTP": {},
+    "CreateUsers": {
+        "Username": "viewer",
+        "UserLevel": "Operator"
+    },
+    "SetNetworkInterfaces": {},
+    "FactoryDefault": {}
+}

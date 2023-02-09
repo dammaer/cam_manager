@@ -1,0 +1,38 @@
+{
+    "Firmware": {},
+    "CamParams": {
+        "auth": "Basic",
+        "services_versions": {
+            "media": 2
+        }
+    },
+    "SetVideoEncoderConfiguration0": {
+        "Encoding": "H264",
+        "Width": 1920,
+        "Height": 1080,
+        "BitrateLimit": 2048
+    },
+    "SetVideoEncoderConfiguration1": {
+        "Encoding": "H264",
+        "Width": 640,
+        "Height": 360,
+        "BitrateLimit": 512
+    },
+    "DeleteOSD": {},
+    "SetAudioEncoderConfiguration": {
+        "http": "2"
+    },
+    "SetNTP": {
+        "http": "3"
+    },
+    "CreateUsers": {
+        "Username": "viewer",
+        "UserLevel": "Operator"
+    },
+    "SetUser": {
+        "Username": "admin",
+        "UserLevel": "Administrator"
+    },
+    "SetNetworkInterfaces": {},
+    "FactoryDefault": {}
+}

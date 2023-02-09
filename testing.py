@@ -1,8 +1,8 @@
-from onvif import ONVIFError
+from onvif2 import ONVIFCamera, ONVIFError
 from zeep import helpers
 
 from camera import Camera
-from env import ADMIN_PASSWD, NTP_DNS
+from env import ADMIN_PASSWD, CONF_DIR, NTP_DNS
 
 DEF_PASSWD = 'admin'
 
@@ -13,11 +13,34 @@ ENDC = '\033[0m'
 
 
 class TestingOnvif(Camera):
+    services_versions = {'media': 2}
 
     def __init__(self, host, port=80, user='admin',
-                 passwd='admin', check=False, debug=False):
+                 passwd='admin', check=False, services_versions={}):
         self.check = check
-        super().__init__(host, port, user, passwd, debug)
+        self.host = host
+        self.port = port
+        self.user = user
+        self.passwd = passwd
+        self.onvif = ONVIFCamera(self.host, port,
+                                 user, passwd, CONF_DIR + '/wsdl')
+        self.devicemgmt = self.onvif.create_devicemgmt_service()
+        self.network = self.devicemgmt.GetNetworkInterfaces()[0]
+        self.mac = self.network.Info.HwAddress
+        self.deviceinfo = self.devicemgmt.GetDeviceInformation()
+        self.model = self.deviceinfo.Model
+        self.firmware = self.deviceinfo.FirmwareVersion
+        self.services_versions.update(services_versions)
+        self.media = self._get_media_service_version()
+        self.profiles = self.media.GetProfiles()
+        self.profile_token = self.profiles[0].token
+
+    def _get_media_service_version(self):
+        match self.services_versions['media']:
+            case 1:
+                return self.onvif.create_media_service()
+            case 2:
+                return self.onvif.create_media2_service()
 
     def to_dict(self, obj):
         return helpers.serialize_object(obj, dict)
@@ -32,13 +55,21 @@ class TestingOnvif(Camera):
         return info
 
     def GetStreamUri(self):
-        stream_uri = self.media.GetStreamUri(
-            {'StreamSetup': {
-                'Stream': 'RTP-Unicast',
-                'Transport': {
-                    'Protocol': 'RTSP'}},
-             'ProfileToken': self.profile_token}).Uri
-        return stream_uri
+        stream_uri = None
+        match self.services_versions['media']:
+            case 1:
+                stream_uri = self.media.GetStreamUri(
+                    {'StreamSetup': {
+                        'Stream': 'RTP-Unicast',
+                        'Transport': {
+                            'Protocol': 'RTSP'}},
+                     'ProfileToken': self.profile_token}).Uri
+            case 2:
+                stream_uri = self.media.GetStreamUri(
+                    {'Protocol': 'RtspUnicast',
+                     'ProfileToken': self.profile_token})
+        return (f'rtsp://admin:{self.passwd}'
+                f"@{self.host}:554{stream_uri.split('554')[-1]}")
 
     def GetVideoEncoderConfiguration(self, vec=0):
         vec_token = self.media_tokens[vec].VideoEncoderConfiguration.token
@@ -60,9 +91,8 @@ class TestingOnvif(Camera):
         return resp
 
     def GetOSDs(self):
-        vsc_token = self.media_tokens[0].VideoSourceConfiguration.token
         try:
-            resp = self.media.GetOSDs(vsc_token)
+            resp = self.media.GetOSDs(self.profile_token)
             if self.check:
                 test = None
                 if len(resp) == 1 or not resp[0].TextString:
@@ -120,27 +150,24 @@ class TestingOnvif(Camera):
 
 
 if __name__ == '__main__':
-    """
-    debug:
-        True - отключаем загрузку json конфига камеры
+    '''
     check:
         True - проверка конкретных параметров после настройки камеры
-                (debug=False)
         False - полный вывод всех параметров
-                (debug=True)
-    """
-    test = TestingOnvif(host='192.168.13.118', port=80,
+    '''
+    # 10.190.252.103
+    test = TestingOnvif(host='192.168.13.64', port=80,
                         passwd=ADMIN_PASSWD,
-                        check=False,
-                        debug=True)
+                        check=False)
     print(test.GetInfo())
-    try:
-        print(test.GetVideoEncoderConfiguration())
-        # print(test.GetVideoEncoderConfiguration(vec=1))
-        # print(test.GetOSDs())
-        # print(test.GetDNS())
-        # print(test.GetNTP())
-        # print(test.GetSystemDateAndTime())
-        # print(test.GetUsers())
-    except TypeError:
-        pass
+    # try:
+    # print(test.GetVideoEncoderConfiguration())
+    # print(test.GetVideoEncoderConfiguration(vec=1))
+    # print(test.GetOSDs())
+    # print(test.GetDNS())
+    # print(test.GetNTP())
+    # print(test.media.GetAudioEncoderConfigurations())
+    # print(test.media.RemoveAudioEncoderConfiguration(test.profile_token))
+    # print(test.GetUsers())
+    # except TypeError:
+    #     pass

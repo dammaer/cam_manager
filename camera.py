@@ -3,15 +3,16 @@ import multiprocessing
 import os
 import time
 from datetime import datetime as dt
-from datetime import timedelta as td
+from glob import glob
 
 import requests
-from onvif import ONVIFCamera, ONVIFError
+from onvif2 import ONVIFCamera, ONVIFError
 from requests.auth import HTTPBasicAuth, HTTPDigestAuth
 from tqdm import tqdm
 from zeep import helpers
 
-from env import ADMIN_PASSWD, CONF_DIR, FW_DIR, NTP_DNS, VIEWER_PASSWD
+from env import (ADMIN_PASSWD, CONF_DIR, DEF_IP, FW_DIR, NTP_DNS, PRECONFIG_IP,
+                 VIEWER_PASSWD)
 from utils import find_ip, get_ip, host_ping
 
 # progress bar params
@@ -26,37 +27,47 @@ class ModelNotFound(Exception):
 
 class Camera():
     operations = None
+    http = None
     session = None
     firmware_new = False
     conf_numbers = None
     selected_conf = {}
 
     def __init__(self, host, port=80, user='admin',
-                 passwd='admin', debug=False, upgrade=True):
+                 passwd='admin', upgrade=True):
         self.host = host
         self.port = port
         self.user = user
         self.passwd = passwd
-        onvif = ONVIFCamera(self.host, port,
-                            user, passwd, CONF_DIR + '/wsdl')
-        self.media = onvif.create_media_service()
-        self.devicemgmt = onvif.create_devicemgmt_service()
-        self.media_tokens = self.media.GetProfiles()
-        self.profile_token = self.media_tokens[0].token
-        self.stream_uri = self.GetStreamUri()
-        self.network = self.devicemgmt.GetNetworkInterfaces()[0]
-        self.net_token = self.network.token
-        self.mac = self.network.Info.HwAddress
-        self.deviceinfo = self.devicemgmt.GetDeviceInformation()
-        self.model = self.deviceinfo.Model
-        self.firmware = self.deviceinfo.FirmwareVersion
         self.upgrade = upgrade
-        self.file = CONF_DIR + f'/cam/{self.model}.json'
+        self.PreConfiguration()
+        self.onvif = ONVIFCamera(self.host, port,
+                                 user, self.passwd, CONF_DIR + '/wsdl')
+        self.devicemgmt = self.onvif.create_devicemgmt_service()
+        self.network = self.devicemgmt.GetNetworkInterfaces()[0]
+        self.mac = self.network.Info.HwAddress
+        deviceinfo = self.devicemgmt.GetDeviceInformation()
+        self.model = deviceinfo.Model
+        self.firmware = deviceinfo.FirmwareVersion
+        self.file = glob(CONF_DIR + f'/**/{self.model}.json',
+                         recursive=True)[0]
+        self._open_config()
+        self.services_versions = self.operations[
+            'CamParams']['services_versions']
+        self.media = self._get_media_service_version()
+        self.profiles = self.media.GetProfiles()
+        self.profile_token = self.profiles[0].token
+        self.stream_uri = self.GetStreamUri()
+
+    def _open_config(self):
         try:
-            if not debug:
-                with open(self.file, 'r') as f:
-                    self.operations = json.load(f)
-                self.GetFirmwareConfig()
+            with open(self.file, 'r') as f:
+                self.operations = json.load(f)
+            if self.operations['CamParams'].get('auth'):
+                http = f"{self.file.rpartition('/')[0]}/http.json"
+                with open(http, 'r') as f:
+                    self.http = json.load(f)
+            self.GetFirmwareConfig()
         except FileNotFoundError:
             if not os.path.exists('log'):
                 os.makedirs('log')
@@ -65,27 +76,12 @@ class Camera():
                 f.write(f'{d_t} - {self.model}\n')
             raise ModelNotFound(f'Модель {self.model} не найдена')
 
-    def _request(self, method, url, data=None,
-                 headers=None, files=None):
-        base_url = f"http://{self.host}{url}"
-
-        def http_auth(type):
-            match type:
-                case 'Basic':
-                    return HTTPBasicAuth(self.user, self.passwd)
-                case 'Digest':
-                    return HTTPDigestAuth(self.user, self.passwd)
-                case _:
-                    return None
-
-        if self.session is None:
-            auth = self.operations['CamParams'].get('auth')
-            self.session = requests.Session()
-            self.session.auth = http_auth(auth)
-        result = self.session.request(method, url=base_url, data=data,
-                                      headers=headers, files=files)
-        if result.status_code != 200:
-            return False
+    def _get_media_service_version(self):
+        match self.services_versions['media']:
+            case 1:
+                return self.onvif.create_media_service()
+            case 2:
+                return self.onvif.create_media2_service()
 
     def _to_dict(self, obj):
         return helpers.serialize_object(obj, dict)
@@ -117,6 +113,30 @@ class Camera():
                 return func(self, conf)
         return wrapper
 
+    def _request(self, method, url, data=None,
+                 headers=None, files=None, json=None, timeout=None):
+        base_url = f"http://{self.host}{url}"
+
+        def http_auth(type):
+            match type:
+                case 'Basic':
+                    return HTTPBasicAuth(self.user, self.passwd)
+                case 'Digest':
+                    return HTTPDigestAuth(self.user, self.passwd)
+                case _:
+                    return None
+
+        if self.session is None:
+            auth = (self.operations['CamParams'].get('auth')
+                    if self.operations else None)
+            self.session = requests.Session()
+            self.session.auth = http_auth(auth)
+        result = self.session.request(method, url=base_url, data=data,
+                                      headers=headers, files=files, json=json,
+                                      timeout=timeout)
+        if result.status_code != 200:
+            return False
+
     def GetFirmwareConfig(self):
         firmware = self.operations['Firmware']
         basic_fw = self.operations['CamParams'].get('basicfirmware')
@@ -130,8 +150,13 @@ class Camera():
                     print('\033[31mПапка с прошивками не найдена!\n'
                           'Будет выполнена только конфигурация.\033[0m\n')
                     return
-                self.firmware = basic_fw
                 self.FirmwareUpgrade()
+                after_update = self.devicemgmt.GetDeviceInformation()
+                if after_update.FirmwareVersion == basic_fw:
+                    self.firmware = basic_fw
+                else:
+                    print('\033[33mОбновление не удалась!\n'
+                          'Будет выполнена только конфигурация.\033[0m\n')
         else:
             self.firmware_new = True
             print('\n\033[33mНеизвестная прошивка камеры: '
@@ -139,29 +164,33 @@ class Camera():
 
     def FirmwareUpgrade(self):
         total = 100
-        timeout = 35
-        file = None
-        params = self.operations['FirmwareUpgradeParams']
+        timeout = 40
+        num = self.operations['FirmwareUpgradeParams']['http']
+        params = self.http['FirmwareUpgradeParams'][num]
         with open(FW_DIR + '/fw.json', 'r') as f:
             file = json.load(f)
         fw_id = file.get(self.model)
         fw_name = file['fw'].get(fw_id)
 
         def upgrade():
-            for p in params:
-                if p.get('files'):
-                    p['files'] = {"file": open(FW_DIR + f'/{fw_name}', 'rb')}
-                    self._request(**p)
-                self._request(**p)
+            timeout=2
+            try:
+                for p in params:
+                    if p.get('files'):
+                        p['files'] = {"file": open(FW_DIR + f'/{fw_name}', 'rb')}
+                        self._request(**p, timeout=timeout)
+                    self._request(**p, timeout=timeout)
+            except:
+                pass
 
-        process = multiprocessing.Process(
-            target=upgrade)
         with tqdm(total=total,
                   bar_format=BAR_FMT,
                   ncols=NCOLS, colour=COLOUR,
                   desc='Updating') as pbar:
-            not_alive = False
+            process = multiprocessing.Process(
+            target=upgrade)
             process.start()
+            not_alive = False
             for i in range(timeout):
                 ping = host_ping(host=self.host, count=3)
                 if not ping.is_alive and not not_alive:
@@ -175,33 +204,39 @@ class Camera():
                 time.sleep(1)
 
     def GetStreamUri(self):
-        stream_uri = self.media.GetStreamUri(
-            {'StreamSetup': {
-                'Stream': 'RTP-Unicast',
-                'Transport': {
-                    'Protocol': 'RTSP'}},
-             'ProfileToken': self.profile_token}).Uri
+        stream_uri = None
+        match self.services_versions['media']:
+            case 1:
+                stream_uri = self.media.GetStreamUri(
+                    {'StreamSetup': {
+                        'Stream': 'RTP-Unicast',
+                        'Transport': {
+                            'Protocol': 'RTSP'}},
+                     'ProfileToken': self.profile_token}).Uri
+            case 2:
+                stream_uri = self.media.GetStreamUri(
+                    {'Protocol': 'RtspUnicast',
+                     'ProfileToken': self.profile_token})
         return stream_uri.split('554')[-1]
 
-    def GetVideoEncoderConfiguration(self, conf, token):
-        resp = self.media.GetVideoEncoderConfiguration(token)
-        params = ('Encoding', 'Resolution', 'Quality', 'H264', 'RateControl')
+    def TestVideoEncoderConfiguration(self, vec_num, modified_conf):
+        resp = self.media.GetVideoEncoderConfigurations()[vec_num]
+        params = ('Encoding', 'Resolution', 'RateControl')
         for p in params:
-            resp_param = self._to_dict(resp[p])
-            if not resp_param == conf['Configuration'][p]:
+            if resp[p] != modified_conf[p]:
                 return False
         return True
 
-    def GetOSDs(self, token):
+    def TestOSDs(self):
         try:
-            resp = self.media.GetOSDs(token)
+            resp = self.media.GetOSDs()
             if len(resp) == 1 or not resp[0].TextString:
                 return True
             return False
         except ONVIFError:
             pass  # в случае если камера не поддерживает запрос OSD
 
-    def GetNTP(self):
+    def TestNTP(self):
         resp = self.devicemgmt.GetNTP()
         params = ('IPv4Address', 'DNSname')
         for p in params:
@@ -213,15 +248,17 @@ class Camera():
                 return True
         return False
 
-    def GetSystemDateAndTime(self):
+    def TestSystemDateAndTime(self):
         resp = self.devicemgmt.GetSystemDateAndTime()
         resp_param = resp.TimeZone.TZ
-        if '-3' in resp_param or '-03' in resp_param:
+        if 'GMT' in resp_param and '+03' in resp_param:
+            return True
+        elif '-3' in resp_param or '-03' in resp_param:
             return True
         return False
 
-    def GetUsers(self):
-        conf = self.operations['CreateUsers']['User']
+    def TestUsers(self):
+        conf = self.operations['CreateUsers']
         count = 0
         while count < 15:
             resp = self.devicemgmt.GetUsers()
@@ -234,94 +271,158 @@ class Camera():
                 time.sleep(1)
         return False
 
+    def PreConfiguration(self):
+        '''
+        For Dahua cameras and cameras where you first need
+        to set user settings to enable access to the onfiv service
+        '''
+        if self.host in PRECONFIG_IP:
+            file = glob(CONF_DIR + f'/**/{PRECONFIG_IP[self.host]}.json',
+                        recursive=True)[0]
+            with open(file, 'r') as f:
+                params = json.load(f)
+            for p in params['PreConfiguration']:
+                self._request(**p)
+            self.passwd = ADMIN_PASSWD
+
     @_selecting_config
     def SetVideoEncoderConfiguration0(self, *args):
+        '''
+        Method of changing the main stream.
+        Media service version 2.
+        '''
         conf = args[0]
-        if 'method' in conf:
-            self._request(**conf)
+        vec = self.media.GetVideoEncoderConfigurations()[0]
+        vec.Encoding = conf['Encoding']
+        vec.Resolution.Width = conf['Width']
+        vec.Resolution.Height = conf['Height']
+        vec.RateControl.BitrateLimit = conf['BitrateLimit']
+        if 'http' in conf:
+            num = conf['http']
+            self._request(**self.http['SetVideoEncoderConfiguration0'][num])
         else:
-            vec_token0 = self.media_tokens[0].VideoEncoderConfiguration.token
-            conf['Configuration']["token"] = vec_token0
-            conf['Configuration']["Name"] = vec_token0
-            conf['Configuration']["SessionTimeout"] = td(0)
-            self.media.SetVideoEncoderConfiguration(conf)
-        test_vec0 = self.GetVideoEncoderConfiguration(conf, vec_token0)
-        return test_vec0
+            match self.services_versions['media']:
+                case 1:
+                    self.OldSetVideoEncoderConfiguration(0, conf)
+                case 2:
+                    self.media.SetVideoEncoderConfiguration(vec)
+        return self.TestVideoEncoderConfiguration(0, vec)
 
     @_selecting_config
     def SetVideoEncoderConfiguration1(self, *args):
+        '''
+        Method of changing the sub stream.
+        Media service version 2.
+        '''
         conf = args[0]
-        if 'method' in conf:
-            self._request(**conf)
+        vec = self.media.GetVideoEncoderConfigurations()[1]
+        vec.Encoding = conf['Encoding']
+        vec.Resolution.Width = conf['Width']
+        vec.Resolution.Height = conf['Height']
+        vec.RateControl.BitrateLimit = conf['BitrateLimit']
+        if 'http' in conf:
+            num = conf['http']
+            self._request(**self.http['SetVideoEncoderConfiguration1'][num])
         else:
-            vec_token1 = self.media_tokens[1].VideoEncoderConfiguration.token
-            conf['Configuration']["token"] = vec_token1
-            conf['Configuration']["Name"] = vec_token1
-            conf['Configuration']["SessionTimeout"] = td(0)
-            self.media.SetVideoEncoderConfiguration(conf)
-        test_vec1 = self.GetVideoEncoderConfiguration(conf, vec_token1)
-        return test_vec1
+            match self.services_versions['media']:
+                case 1:
+                    self.OldSetVideoEncoderConfiguration(1, conf)
+                case 2:
+                    self.media.SetVideoEncoderConfiguration(vec)
+        return self.TestVideoEncoderConfiguration(1, vec)
 
-    def SetAudioEncoderConfiguration(self):
-        aec = self.operations.get('SetAudioEncoderConfiguration')
-        self._request(**aec)
+    def OldSetVideoEncoderConfiguration(self, vec_num, conf):
+        '''
+        Method of changing the main/sub stream.
+        Media service version 1.
+        '''
+        token = self.profiles[vec_num].VideoEncoderConfiguration.token
+        vec = self.media.GetVideoEncoderConfiguration(token)
+        vec.Encoding = conf['Encoding']
+        vec.Resolution.Width = conf['Width']
+        vec.Resolution.Height = conf['Height']
+        vec.RateControl.BitrateLimit = conf['BitrateLimit']
+        vec = {'Configuration': vec, 'ForcePersistence': True}
+        self.media.SetVideoEncoderConfiguration(vec)
 
     @_selecting_config
     def DeleteOSD(self, *args):
-        vsc_token = self.media_tokens[0].VideoSourceConfiguration.token
         conf = args[0]
-        if 'method' in conf:
-            self._request(**conf)
-        else:
+        if 'http' in conf:
+            num = conf['http']
+            self._request(**self.http['DeleteOSD'][num])
+        elif not self.TestOSDs():
             osd_text_token = [
                 text_token.token
-                for text_token in self.media.GetOSDs(vsc_token)
+                for text_token in self.media.GetOSDs()
                 if text_token.TextString
                 and text_token.TextString.Type == 'Plain']
             if osd_text_token:
                 self.media.DeleteOSD(*osd_text_token)
-        return self.GetOSDs(vsc_token)
+        return self.TestOSDs()
 
-    @_selecting_config
-    def SetNTP(self, *args):
-        conf = args[0]
-        if 'method' in conf:
-            self._request(**conf)
-        else:
-            conf['NTPManual']['DNSname'] = NTP_DNS
-            self.devicemgmt.SetNTP(conf)
-        return self.GetNTP()
+    def SetAudioEncoderConfiguration(self):
+        conf = self.operations['SetAudioEncoderConfiguration']
+        if 'http' in conf:
+            num = conf['http']
+            self._request(**self.http['SetAudioEncoderConfiguration'][num])
 
     @_selecting_config
     def SetSystemDateAndTime(self, *args):
         conf = args[0]
-        if 'method' in conf:
-            self._request(**conf)
+        if 'http' in conf:
+            num = conf['http']
+            self._request(**self.http['SetSystemDateAndTime'][num])
         else:
-            self.devicemgmt.SetSystemDateAndTime(conf)
-        return self.GetSystemDateAndTime()
+            d_t = self.devicemgmt.create_type('SetSystemDateAndTime')
+            d_t.DateTimeType = 'NTP'
+            d_t.DaylightSavings = False
+            d_t.TimeZone = conf
+            self.devicemgmt.SetSystemDateAndTime(d_t)
+        return self.TestSystemDateAndTime()
+
+    @_selecting_config
+    def SetNTP(self, *args):
+        conf = args[0]
+        if 'http' in conf:
+            num = conf['http']
+            self._request(**self.http['SetNTP'][num])
+        else:
+            ntp = self.devicemgmt.create_type('SetNTP')
+            ntp.FromDHCP = False
+            ntp.NTPManual = {"Type": "DNS", "DNSname": NTP_DNS}
+            self.devicemgmt.SetNTP(ntp)
+        return self.TestNTP()
 
     def CreateUsers(self):
-        user = self.operations["CreateUsers"]
-        user['User']['Password'] = VIEWER_PASSWD
-        self.devicemgmt.CreateUsers(user)
-        return self.GetUsers()
+        if not self.TestUsers():
+            conf = self.operations['CreateUsers']
+            user = self.devicemgmt.create_type('CreateUsers')
+            user.User = conf
+            user.User['Password'] = VIEWER_PASSWD
+            self.devicemgmt.CreateUsers(user)
+        return self.TestUsers()
 
     def SetUser(self):
-        user = self.operations["SetUser"]
-        user['User']['Password'] = ADMIN_PASSWD
+        conf = self.operations["SetUser"]
+        user = self.devicemgmt.create_type('SetUser')
+        user.User = conf
+        user.User['Password'] = ADMIN_PASSWD
         self.devicemgmt.SetUser(user)
 
     def SetDNS(self):
         conf = self.operations["SetDNS"]
-        if 'method' in conf:
-            self._request(**conf)
+        if 'http' in conf:
+            num = conf['http']
+            self._request(**self.http['SetDNS'][num])
         else:
             self.devicemgmt.SetDNS({'FromDHCP': True})
 
     def SetNetworkInterfaces(self):
-        net = self.operations["SetNetworkInterfaces"]
-        net["InterfaceToken"] = self.net_token
+        net_token = self.network.token
+        net = self.devicemgmt.create_type('SetNetworkInterfaces')
+        net.InterfaceToken = net_token
+        net.NetworkInterface = {'IPv4': {'DHCP': True}}
 
         def change():
             try:
@@ -344,8 +445,9 @@ class Camera():
         total = 100
         timeout = 10
         def_ip = False
-        if 'method' in conf:
-            self._request(**conf)
+        if 'http' in conf:
+            num = conf['http']
+            self._request(**self.http['FactoryDefault'][num])
         else:
             self.devicemgmt.SetSystemFactoryDefault('Hard')
         with tqdm(total=total,
@@ -391,7 +493,8 @@ class Camera():
                 errors += f'\nERROR! {operation}\n'
         if not errors:
             self._samosbor()
-        info = self.get_info_after_setup()
+        ip = self.host if self.host not in DEF_IP else None
+        info = self.get_info_after_setup(ip)
         print(f'\033[31m{errors}\033[0m{info}')
         msg += errors
         msg += info
@@ -400,10 +503,10 @@ class Camera():
 
 if __name__ == '__main__':
     try:
-        ip = find_ip()
+        ip = find_ip(count=2)
         if ip:
             setup = Camera(host=ip)
-            print(setup.setup_camera())
+            setup.setup_camera()
         else:
             print('\033[31mКамера с дефолтным ip не найдена.\033[0m')
     except ONVIFError as e:

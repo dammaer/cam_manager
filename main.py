@@ -8,7 +8,7 @@ if not os.path.exists('configs'):
 
 from datetime import datetime as dt
 
-from onvif import ONVIFError
+from onvif2 import ONVIFError
 
 from camera import Camera, ModelNotFound
 from env import SWI_IP
