@@ -10,8 +10,6 @@ from tqdm import trange
 from env import DEF_IP, OTHER_PASSWDS
 from ros_old_api import RosOldApi
 
-HOSTS = DEF_IP
-
 MCAST_GRP = '224.0.0.4'
 MCAST_PORT = 4000
 
@@ -30,7 +28,7 @@ def host_ping(host, count=1):
 
 
 def find_ip(count=3, interval=0.5):
-    result = multiping(HOSTS, count, interval,
+    result = multiping(DEF_IP, count, interval,
                        timeout=1, privileged=False)
     for host in result:
         if host.is_alive:

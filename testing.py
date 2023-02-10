@@ -72,7 +72,7 @@ class TestingOnvif(Camera):
                 f"@{self.host}:554{stream_uri.split('554')[-1]}")
 
     def GetVideoEncoderConfiguration(self, vec=0):
-        vec_token = self.media_tokens[vec].VideoEncoderConfiguration.token
+        vec_token = self.profiles[vec].VideoEncoderConfiguration.token
         resp = self.media.GetVideoEncoderConfiguration(vec_token)
         if self.check:
             params = ('Encoding', 'Resolution', 'Quality',
@@ -156,18 +156,23 @@ if __name__ == '__main__':
         False - полный вывод всех параметров
     '''
     # 10.190.252.103
-    test = TestingOnvif(host='192.168.13.64', port=80,
-                        passwd=ADMIN_PASSWD,
+    test = TestingOnvif(host='192.168.13.68', port=80,
+                        passwd='admin',
                         check=False)
-    print(test.GetInfo())
+    # print(test.GetInfo())
     # try:
-    # print(test.GetVideoEncoderConfiguration())
-    # print(test.GetVideoEncoderConfiguration(vec=1))
-    # print(test.GetOSDs())
-    # print(test.GetDNS())
-    # print(test.GetNTP())
-    # print(test.media.GetAudioEncoderConfigurations())
-    # print(test.media.RemoveAudioEncoderConfiguration(test.profile_token))
-    # print(test.GetUsers())
+        # print(test.GetVideoEncoderConfiguration())
+        # print(test.GetVideoEncoderConfiguration(vec=1))
+        # print(test.GetOSDs())
+        # print(test.GetDNS())
+        # print(test.GetNTP())
+        # print(test.GetUsers())
+        # net_token = test.network.token
+        # net = test.devicemgmt.create_type('SetNetworkInterfaces')
+        # net.InterfaceToken = net_token
+        # net.NetworkInterface = {'IPv4': {'Enabled': True,'DHCP': True}}
+        # test.devicemgmt.SetNetworkInterfaces(net)
+        # print(test.devicemgmt.GetNetworkInterfaces())
     # except TypeError:
     #     pass
+    print(test.media.GetVideoEncoderConfigurations())

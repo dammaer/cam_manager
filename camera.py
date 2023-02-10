@@ -50,7 +50,7 @@ class Camera():
         self.model = deviceinfo.Model
         self.firmware = deviceinfo.FirmwareVersion
         self.file = glob(CONF_DIR + f'/**/{self.model}.json',
-                         recursive=True)[0]
+                         recursive=True)
         self._open_config()
         self.services_versions = self.operations[
             'CamParams']['services_versions']
@@ -60,7 +60,8 @@ class Camera():
         self.stream_uri = self.GetStreamUri()
 
     def _open_config(self):
-        try:
+        if self.file:
+            self.file = self.file[0]
             with open(self.file, 'r') as f:
                 self.operations = json.load(f)
             if self.operations['CamParams'].get('auth'):
@@ -68,7 +69,7 @@ class Camera():
                 with open(http, 'r') as f:
                     self.http = json.load(f)
             self.GetFirmwareConfig()
-        except FileNotFoundError:
+        else:
             if not os.path.exists('log'):
                 os.makedirs('log')
             with open('log/models_not_found.log', 'a+') as f:
@@ -173,22 +174,23 @@ class Camera():
         fw_name = file['fw'].get(fw_id)
 
         def upgrade():
-            timeout=2
-            try:
-                for p in params:
+            timeout = 2
+            for p in params:
+                try:
                     if p.get('files'):
-                        p['files'] = {"file": open(FW_DIR + f'/{fw_name}', 'rb')}
+                        p['files'] = {
+                            "file": open(FW_DIR + f'/{fw_name}', 'rb')}
                         self._request(**p, timeout=timeout)
                     self._request(**p, timeout=timeout)
-            except:
-                pass
+                except Exception:
+                    pass
 
         with tqdm(total=total,
                   bar_format=BAR_FMT,
                   ncols=NCOLS, colour=COLOUR,
                   desc='Updating') as pbar:
             process = multiprocessing.Process(
-            target=upgrade)
+                target=upgrade)
             process.start()
             not_alive = False
             for i in range(timeout):
@@ -422,7 +424,7 @@ class Camera():
         net_token = self.network.token
         net = self.devicemgmt.create_type('SetNetworkInterfaces')
         net.InterfaceToken = net_token
-        net.NetworkInterface = {'IPv4': {'DHCP': True}}
+        net.NetworkInterface = {'IPv4': {'Enabled': True, 'DHCP': True}}
 
         def change():
             try:
@@ -503,7 +505,7 @@ class Camera():
 
 if __name__ == '__main__':
     try:
-        ip = find_ip(count=2)
+        ip = '192.168.13.68'
         if ip:
             setup = Camera(host=ip)
             setup.setup_camera()

@@ -117,57 +117,59 @@ def multi_setup():
 
 def factory_reset():
     mac = None
+    ip = None
     timeout = 50
     print(f'Введите mac-адрес камеры (таймаут {timeout} сек.). 0 - отмена')
     while True:
         try:
             mac = mac_check(input_with_timeout(timeout))
-            ip = get_ip(mac)
-            if ip:
-                bf = brute_force()
-                while True:
-                    try:
-                        passwd = next(bf)
-                        camera = Camera(host=ip, passwd=passwd, upgrade=False)
-                        def_ip = camera.SetSystemFactoryDefault()
-                        if def_ip:
-                            print(camera.get_info_after_setup(ip=def_ip))
-                            break
-                        else:
-                            print('\n\033[33mПосле попытки сброса, '
-                                  'камера не вернула дефолтный ip!\n'
-                                  'Скорее всего произошел сброс всех '
-                                  'параметров, но без настроек сети и '
-                                  'пользоваталей.\033[0m\n')
-                            break
-                    except ONVIFError:
-                        pass
-                    except ModelNotFound as e:
-                        error_msg = ('\nНе удалось произвести '
-                                     f'настройку!\nПричина: {e}\n')
-                        print(f'\033[31m{error_msg}\033[0m')
-                        break
-                    except StopIteration:
-                        print('\n\033[31mНи один из известных '
-                              'паролей не подошёл!\033[0m\n')
-                        break
-            else:
-                print('\n\033[33mКамера не получает ip по DHCP '
-                      'от офисного роутера!\033[0m\n')
-                break
+            rb_ip = get_ip(mac)
+            ip = rb_ip if rb_ip else find_ip(count=2)
         except MacAddressBad as e:
             zero = e.args[0]
             if zero.isdigit() and int(zero) == 0:
                 break
             print(f'\033[33m{e.args[1]} Попробуйте ещё раз.\033[0m')
-        finally:
-            if mac:
-                print('Выход из режима сброса...')
-                break
+        if ip:
+            bf = brute_force()
+            while True:
+                try:
+                    passwd = next(bf)
+                    camera = Camera(host=ip, passwd=passwd, upgrade=False)
+                    def_ip = camera.SetSystemFactoryDefault()
+                    if def_ip:
+                        print(camera.get_info_after_setup(ip=def_ip))
+                        break
+                    else:
+                        print('\n\033[33mПосле попытки сброса, '
+                              'камера не вернула дефолтный ip!\n'
+                              'Скорее всего произошел сброс всех '
+                              'параметров, но без настроек сети и '
+                              'пользоваталей.\033[0m\n')
+                        break
+                except ONVIFError:
+                    pass
+                except ModelNotFound as e:
+                    error_msg = ('\nНе удалось произвести '
+                                 f'настройку!\nПричина: {e}\n')
+                    print(f'\033[31m{error_msg}\033[0m')
+                    break
+                except StopIteration:
+                    print('\n\033[31mНи один из известных '
+                          'паролей не подошёл!\033[0m\n')
+                    break
+        elif mac and not ip:
+            print('\n\033[33mКамера не получает ip по DHCP '
+                  'от офисного роутера и не найдена ни по одному из '
+                  'дефолтных ip!\033[0m\n')
+            break
+        if mac:
+            print('Выход из режима сброса...')
+            break
 
 
 def setup():
-    timeout = 30
+    timeout = 120
     banner = ('\033[36m _ _  _ _    _ _  _  _  _  _  _  _\n'
               '(_(_|| | |  | | |(_|| |(_|(_|(/_| \n'
               '                           _|     \033[0m\n')
