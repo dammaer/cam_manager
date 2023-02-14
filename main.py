@@ -123,6 +123,7 @@ def factory_reset():
     while True:
         try:
             mac = mac_check(input_with_timeout(timeout))
+            print('Получаем ip...')
             rb_ip = get_ip(mac)
             ip = rb_ip if rb_ip else find_ip(count=2)
         except MacAddressBad as e:
