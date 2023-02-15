@@ -156,10 +156,10 @@ if __name__ == '__main__':
         False - полный вывод всех параметров
     '''
     # 10.190.252.103
-    test = TestingOnvif(host='192.168.13.68', port=80,
+    test = TestingOnvif(host='192.168.1.2', port=80,
                         passwd='admin',
                         check=False)
-    # print(test.GetInfo())
+    print(test.GetInfo())
     # try:
         # print(test.GetVideoEncoderConfiguration())
         # print(test.GetVideoEncoderConfiguration(vec=1))
@@ -175,4 +175,4 @@ if __name__ == '__main__':
         # print(test.devicemgmt.GetNetworkInterfaces())
     # except TypeError:
     #     pass
-    print(test.media.GetVideoEncoderConfigurations())
+    # print(test.media.GetVideoEncoderConfigurations())
