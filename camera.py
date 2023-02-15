@@ -505,7 +505,7 @@ class Camera():
 
 if __name__ == '__main__':
     try:
-        ip = '192.168.13.68'
+        ip = find_ip()
         if ip:
             setup = Camera(host=ip)
             setup.setup_camera()
