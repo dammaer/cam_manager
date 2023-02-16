@@ -7,7 +7,7 @@
     "CamParams": {
         "auth": "Digest",
         "services_versions": {
-            "media": 2
+            "media": 1
         }
     },
     "SetVideoEncoderConfiguration0": {

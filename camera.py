@@ -229,11 +229,14 @@ class Camera():
                 return False
         return True
 
-    def TestOSDs(self):
+    def TestOSDs(self, token):
         try:
-            resp = self.media.GetOSDs()
-            if len(resp) == 1 or not resp[0].TextString:
-                return True
+            resp = self.media.GetOSDs(token)
+            if resp:
+                if not resp[0].TextString:
+                    return True
+                elif resp[0].TextString.Type != 'Plain':
+                    return True
             return False
         except ONVIFError:
             pass  # в случае если камера не поддерживает запрос OSD
@@ -350,18 +353,22 @@ class Camera():
     @_selecting_config
     def DeleteOSD(self, *args):
         conf = args[0]
+        token = None
         if 'http' in conf:
             num = conf['http']
             self._request(**self.http['DeleteOSD'][num])
-        elif not self.TestOSDs():
+        else:
+            match self.services_versions['media']:
+                case 1:
+                    token = self.profiles[0].VideoSourceConfiguration.token
             osd_text_token = [
                 text_token.token
-                for text_token in self.media.GetOSDs()
+                for text_token in self.media.GetOSDs(token)
                 if text_token.TextString
                 and text_token.TextString.Type == 'Plain']
             if osd_text_token:
                 self.media.DeleteOSD(*osd_text_token)
-        return self.TestOSDs()
+        return self.TestOSDs(token)
 
     def SetAudioEncoderConfiguration(self):
         conf = self.operations['SetAudioEncoderConfiguration']
@@ -410,7 +417,11 @@ class Camera():
         user = self.devicemgmt.create_type('SetUser')
         user.User = conf
         user.User['Password'] = ADMIN_PASSWD
-        self.devicemgmt.SetUser(user)
+        try:
+            self.devicemgmt.SetUser(user)
+        except ONVIFError:
+            user.User['Username'] = conf['Username'].title()
+            self.devicemgmt.SetUser(user)
 
     def SetDNS(self):
         conf = self.operations["SetDNS"]
@@ -504,13 +515,13 @@ class Camera():
 
 
 if __name__ == '__main__':
-    try:
-        ip = find_ip()
-        if ip:
-            setup = Camera(host=ip)
-            setup.setup_camera()
-        else:
-            print('\033[31mКамера с дефолтным ip не найдена.\033[0m')
-    except ONVIFError as e:
-        print('\033[31mНе удалось произвести настройку!\n'
-              f'Причина: {e}\033[0m')
+    # try:
+    ip = '192.168.13.66'
+    if ip:
+        setup = Camera(host=ip, passwd=ADMIN_PASSWD)
+        setup.setup_camera()
+    else:
+        print('\033[31mКамера с дефолтным ip не найдена.\033[0m')
+    # except ONVIFError as e:
+    #     print('\033[31mНе удалось произвести настройку!\n'
+    #           f'Причина: {e}\033[0m')

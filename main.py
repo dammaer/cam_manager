@@ -123,7 +123,7 @@ def factory_reset():
     while True:
         try:
             mac = mac_check(input_with_timeout(timeout))
-            print('Получаем ip...')
+            print('> Получаем ip...', end='\r')
             rb_ip = get_ip(mac)
             ip = rb_ip if rb_ip else find_ip(count=2)
         except MacAddressBad as e:
@@ -132,6 +132,7 @@ def factory_reset():
                 break
             print(f'\033[33m{e.args[1]} Попробуйте ещё раз.\033[0m')
         if ip:
+            sys.stdout.write("\033[K")
             bf = brute_force()
             while True:
                 try:
@@ -160,10 +161,10 @@ def factory_reset():
                           'паролей не подошёл!\033[0m\n')
                     break
         elif mac and not ip:
+            sys.stdout.write("\033[K")
             print('\n\033[33mКамера не получает ip по DHCP '
                   'от офисного роутера и не найдена ни по одному из '
                   'дефолтных ip!\033[0m\n')
-            break
         if mac:
             print('Выход из режима сброса...')
             break

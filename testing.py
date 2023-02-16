@@ -13,7 +13,7 @@ ENDC = '\033[0m'
 
 
 class TestingOnvif(Camera):
-    services_versions = {'media': 2}
+    services_versions = {'media': 1}
 
     def __init__(self, host, port=80, user='admin',
                  passwd='admin', check=False, services_versions={}):
@@ -91,19 +91,21 @@ class TestingOnvif(Camera):
         return resp
 
     def GetOSDs(self):
-        try:
-            resp = self.media.GetOSDs(self.profile_token)
-            if self.check:
-                test = None
-                if len(resp) == 1 or not resp[0].TextString:
-                    test = f'OSD - {OK}'
-                else:
-                    test = (f'OSD - {ERROR} (не убрана лишняя '
-                            f'информация на видео){ENDC}')
-                return test
-            return resp
-        except ONVIFError:
-            return f'OSD - {FAIL} (не поддерживается){ENDC}'
+        token = self.profiles[0].VideoSourceConfiguration.token
+        return self.media.GetOSDs(token)
+        # try:
+        #     resp = self.media.GetOSDs()
+        #     if self.check:
+        #         test = None
+        #         if len(resp) == 1 or not resp[0].TextString:
+        #             test = f'OSD - {OK}'
+        #         else:
+        #             test = (f'OSD - {ERROR} (не убрана лишняя '
+        #                     f'информация на видео){ENDC}')
+        #         return test
+        #     return resp
+        # except ONVIFError:
+        #     return f'OSD - {FAIL} (не поддерживается){ENDC}'
 
     def GetDNS(self):
         return self.devicemgmt.GetDNS()
@@ -156,17 +158,17 @@ if __name__ == '__main__':
         False - полный вывод всех параметров
     '''
     # 10.190.252.103
-    test = TestingOnvif(host='192.168.1.120', port=80,
-                        passwd='admin',
+    test = TestingOnvif(host='192.168.13.66', port=80,
+                        passwd=ADMIN_PASSWD,
                         check=False)
-    print(test.GetInfo())
+    # print(test.GetInfo())
     # try:
         # print(test.GetVideoEncoderConfiguration())
         # print(test.GetVideoEncoderConfiguration(vec=1))
-        # print(test.GetOSDs())
+    print(test.GetOSDs())
         # print(test.GetDNS())
         # print(test.GetNTP())
-        # print(test.GetUsers())
+    # print(test.GetUsers())
         # net_token = test.network.token
         # net = test.devicemgmt.create_type('SetNetworkInterfaces')
         # net.InterfaceToken = net_token
