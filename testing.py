@@ -158,8 +158,8 @@ if __name__ == '__main__':
         False - полный вывод всех параметров
     '''
     # 10.190.252.103
-    test = TestingOnvif(host='192.168.13.66', port=80,
-                        passwd=ADMIN_PASSWD,
+    test = TestingOnvif(host='192.168.1.2', port=80,
+                        passwd='admin',
                         check=False)
     # print(test.GetInfo())
     # try:
