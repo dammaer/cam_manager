@@ -3,11 +3,12 @@ import signal
 import socket
 import struct
 import time
+from itertools import product
 
 from icmplib import multiping, ping
 from tqdm import trange
 
-from env import DEF_IP, OTHER_PASSWDS
+from env import DEF_IP, OTHER_LOGINS, OTHER_PASSWDS
 from ros_old_api import RosOldApi
 
 MCAST_GRP = '224.0.0.4'
@@ -28,6 +29,9 @@ def host_ping(host, count=1):
 
 
 def find_ip(count=3, interval=0.5):
+    '''
+    Send ICMP Echo Request packets to default ip.
+    '''
     result = multiping(DEF_IP, count, interval,
                        timeout=1, privileged=False)
     for host in result:
@@ -36,6 +40,9 @@ def find_ip(count=3, interval=0.5):
 
 
 def get_ip(mac):
+    '''
+    Getting an IP address from a router (mikrotik).
+    '''
     rb = RosOldApi()
     ip = None
     count = 0
@@ -50,8 +57,11 @@ def get_ip(mac):
 
 
 def brute_force():
-    for passwd in iter(OTHER_PASSWDS):
-        yield passwd
+    '''
+    Brute force of usernames and passwords. Used when resetting the camera.
+    '''
+    for login, passwd in product(OTHER_LOGINS, OTHER_PASSWDS):
+        yield login, passwd
 
 
 def sleep_bar(sec):
@@ -90,6 +100,9 @@ def mac_check(mac):
 
 
 def get_local_ip():
+    '''
+    Returns the primary ip address specified to the host.
+    '''
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.settimeout(0)
     try:
@@ -104,6 +117,10 @@ def get_local_ip():
 
 
 def mcast_send():
+    '''
+    Used to send multicast the ip address of the host
+    on which the utility is running.
+    '''
     MULTICAST_TTL = 1
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
@@ -114,6 +131,10 @@ def mcast_send():
 
 
 def mcast_recv():
+    '''
+    Subscribes to a multicast group in which the ip address of the host
+    is broadcast if the utility is already running.
+    '''
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     sock.settimeout(0.5)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

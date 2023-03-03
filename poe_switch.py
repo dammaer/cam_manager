@@ -2,7 +2,8 @@ import re
 
 import pexpect
 
-from env import SWI_IP, SWI_LOGIN, SWI_PASSWD
+from env import (SWI_IP, SWI_LOGIN, SWI_MAX_POE_ETH_PORTS, SWI_PASSWD,
+                 SWI_UPLINK)
 
 
 class SwiFail(Exception):
@@ -35,10 +36,31 @@ class Switch():
             output = self.telnet.before.replace("\r\n", ";")
             output = re.sub(r'\s+', '&', output)
             for strg in output.split(';'):
-                if 'UP/UP' in strg and '1/0/24' not in strg:
-                    self.ports_up.append(strg.split('&')[0].split('/')[-1])
+                port_num = strg.split('&')[0].split('/')[-1]
+                if 'UP/UP' in strg and port_num <= SWI_MAX_POE_ETH_PORTS:
+                    if port_num != SWI_UPLINK:
+                        self.ports_up.append(port_num)
         else:
             return False
+
+    def ports_range(self):
+        try:
+            command = 'int ethernet 1/0/'
+            uplink = int(SWI_UPLINK)
+            max_ports = int(SWI_MAX_POE_ETH_PORTS)
+            if uplink in range(1, max_ports+1):
+                if uplink == 1:
+                    command += f'2-{max_ports}'
+                elif uplink == max_ports:
+                    command += f'1-{max_ports-1}'
+                else:
+                    command += f'1-{uplink-1};{uplink+1}-{max_ports}'
+            else:
+                command += f'1-{max_ports}'
+            return command
+        except ValueError:
+            raise SwiFail('В settings.ini указаны неправильные '
+                          'значения портов POE коммутатора!')
 
     def enter_conf_mode(self):
         self.telnet.sendline('conf t')
@@ -52,7 +74,7 @@ class Switch():
 
     def turning_off_ports(self):
         self.enter_conf_mode()
-        self.telnet.sendline('int ethernet 1/0/1-23')
+        self.telnet.sendline(self.ports_range())
         self.telnet.expect(self.prompt)
         self.telnet.sendline('shutdown')
         self.telnet.expect(self.prompt)
@@ -61,7 +83,7 @@ class Switch():
     def turning_on_ports(self):
         try:
             self.enter_conf_mode()
-            self.telnet.sendline('int ethernet 1/0/1-23')
+            self.telnet.sendline(self.ports_range())
             self.telnet.expect(self.prompt)
             self.telnet.sendline('no shutdown')
             self.telnet.expect(self.prompt)

@@ -515,13 +515,13 @@ class Camera():
 
 
 if __name__ == '__main__':
-    # try:
-    ip = '192.168.13.66'
-    if ip:
-        setup = Camera(host=ip, passwd=ADMIN_PASSWD)
-        setup.setup_camera()
-    else:
-        print('\033[31mКамера с дефолтным ip не найдена.\033[0m')
-    # except ONVIFError as e:
-    #     print('\033[31mНе удалось произвести настройку!\n'
-    #           f'Причина: {e}\033[0m')
+    try:
+        ip = find_ip()
+        if ip:
+            setup = Camera(host=ip, passwd=ADMIN_PASSWD)
+            setup.setup_camera()
+        else:
+            print('\033[31mКамера с дефолтным ip не найдена.\033[0m')
+    except ONVIFError as e:
+        print('\033[31mНе удалось произвести настройку!\n'
+              f'Причина: {e}\033[0m')

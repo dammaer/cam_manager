@@ -42,9 +42,3 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
 )
-
-import shutil
-try:
-    shutil.copytree('configs', '{0}/configs'.format(DISTPATH))
-except FileExistsError:
-    print('Папка configs уже добавлена!')
