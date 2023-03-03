@@ -11,3 +11,10 @@
 
 ## Вступление:
 ![tg_msg](images/tg_msg.jpg)
+
+### Какие модели камер можно настроить?
+<details>
+<summary>DAHUA</summary>
+DH-IPC-HDW2230TP-AS-0280B<br>
+DH-IPC-HFW2231TP-ZS
+</details>
