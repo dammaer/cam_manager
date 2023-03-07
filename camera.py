@@ -13,7 +13,7 @@ from zeep import helpers
 
 from env import (ADMIN_PASSWD, CONF_DIR, DEF_IP, FW_DIR, NTP_DNS, PRECONFIG_IP,
                  VIEWER_PASSWD)
-from utils import find_ip, get_ip, host_ping
+from utils import find_ip, get_ip, host_ping, replace_http_params
 
 # progress bar params
 BAR_FMT = '{l_bar}{bar}'
@@ -395,7 +395,9 @@ class Camera():
         conf = args[0]
         if 'http' in conf:
             num = conf['http']
-            self._request(**self.http['SetNTP'][num])
+            new_conf = replace_http_params(self.http['SetNTP'][num],
+                                           'NTP_SERVER', NTP_DNS)
+            self._request(**new_conf)
         else:
             ntp = self.devicemgmt.create_type('SetNTP')
             ntp.FromDHCP = False

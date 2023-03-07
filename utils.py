@@ -63,6 +63,18 @@ def brute_force():
     for login, passwd in product(OTHER_LOGINS, OTHER_PASSWDS):
         yield login, passwd
 
+def replace_http_params(structure, old_value, new_value):
+    '''
+    Replaces the parameters in /configs/cam/name/http.json to the required values.
+    For example NTP_SERVER on ntp.example.com
+    '''
+    new_structure = {}
+    for key, value in structure.items():
+        if isinstance(value, dict):
+            new_structure[key] = replace_http_params(value, old_value, new_value)
+        else:
+            new_structure[key] = value.replace(old_value, new_value) if old_value in value else value
+    return new_structure
 
 def sleep_bar(sec):
     t = trange(sec, leave=False,

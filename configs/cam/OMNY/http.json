@@ -59,7 +59,7 @@
                 "root_Time_DST_Enabled": "yes",
                 "Time_DST_Enabled": "on",
                 "root_Time_SyncSource": "NTP",
-                "ntpServer": "ntp.lanta.me",
+                "ntpServer": "NTP_SERVER",
                 "interval": "day1",
                 "permit": "yes",
                 "formType": "formType2",
@@ -70,7 +70,7 @@
         "2": {
             "method": "PUT",
             "url": "/CGI/System/Network/NTP",
-            "data": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><NTP>\n<NTPServer>ntp.lanta.me</NTPServer>\n<PortNO>123</PortNO>\n<Inerval>60</Inerval>\n</NTP>",
+            "data": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><NTP>\n<NTPServer>NTP_SERVER</NTPServer>\n<PortNO>123</PortNO>\n<Inerval>60</Inerval>\n</NTP>",
             "headers": {
                 "Content-Type": "application/xml"
             }
@@ -78,7 +78,7 @@
         "3": {
             "method": "POST",
             "url": "/action/set?subject=systime",
-            "data": "<?xml version=\"1.0\" encoding=\"utf-8\"?><request><systime ver=\"2.0\"><mode>1</mode><tz>MSK-3</tz><dst><active>0</active></dst><ntp><host>ntp.lanta.me</host><port>123</port><interval>1</interval></ntp></systime></request>"
+            "data": "<?xml version=\"1.0\" encoding=\"utf-8\"?><request><systime ver=\"2.0\"><mode>1</mode><tz>MSK-3</tz><dst><active>0</active></dst><ntp><host>NTP_SERVER</host><port>123</port><interval>1</interval></ntp></systime></request>"
         }
     },
     "SetDNS": {
