@@ -10,7 +10,7 @@ from datetime import datetime as dt
 
 from onvif2 import ONVIFError
 
-from camera import Camera, ModelNotFound
+from camera import Camera, ModelNotFound, BadCamera
 from env import SWI_IP
 from poe_switch import SwiFail, Switch
 from utils import (brute_force, find_ip, get_ip, host_ping,
@@ -31,6 +31,10 @@ def single_setup():
     except ONVIFError as e:
         print(f'\033[31mНе удалось произвести настройку!\nПричина: {e}\033[0m')
     except ModelNotFound as e:
+        error_msg = ('\nНе удалось произвести '
+                     f'настройку!\nПричина: {e}\n')
+        print(f'\033[31m{error_msg}\033[0m')
+    except BadCamera as e:
         error_msg = ('\nНе удалось произвести '
                      f'настройку!\nПричина: {e}\n')
         print(f'\033[31m{error_msg}\033[0m')
@@ -104,6 +108,10 @@ def multi_setup():
                         result += error_msg
                         print(f'\033[31m{error_msg}\033[0m')
                         switch.disable_port(port)
+                    except BadCamera as e:
+                        error_msg = ('\nНе удалось произвести '
+                                     f'настройку!\nПричина: {e}\n')
+                        print(f'\033[31m{error_msg}\033[0m')
                 else:
                     not_found_msg = ('\nWARNING! Возможно камера уже '
                                      'настроена! Не найдена по '

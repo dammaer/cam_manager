@@ -25,6 +25,10 @@ class ModelNotFound(Exception):
     pass
 
 
+class BadCamera(Exception):
+    pass
+
+
 class Camera():
     operations = None
     http = None
@@ -55,7 +59,7 @@ class Camera():
         self.services_versions = self.operations[
             'CamParams']['services_versions']
         self.media = self._get_media_service_version()
-        self.profiles = self.media.GetProfiles()
+        self.profiles = self._get_profiles()
         self.profile_token = self.profiles[0].token
         self.stream_uri = self.GetStreamUri()
 
@@ -75,7 +79,7 @@ class Camera():
             with open('log/models_not_found.log', 'a+') as f:
                 d_t = dt.now().strftime('%Y-%m-%d_%H:%M')
                 f.write(f'{d_t} - {self.model}\n')
-            raise ModelNotFound(f'Модель {self.model} не найдена')
+            raise ModelNotFound(f'Модель {self.model} не найдена!')
 
     def _get_media_service_version(self):
         match self.services_versions['media']:
@@ -83,6 +87,13 @@ class Camera():
                 return self.onvif.create_media_service()
             case 2:
                 return self.onvif.create_media2_service()
+
+    def _get_profiles(self):
+        media_profiles = self.media.GetProfiles()
+        if media_profiles:
+            return media_profiles
+        else:
+            raise BadCamera('Камера не поддерживает основные сервисы onvif!')
 
     def _to_dict(self, obj):
         return helpers.serialize_object(obj, dict)
@@ -135,8 +146,9 @@ class Camera():
         result = self.session.request(method, url=base_url, data=data,
                                       headers=headers, files=files, json=json,
                                       timeout=timeout)
-        if result.status_code != 200:
-            return False
+        if result.status_code == 200:
+            return True
+        return False
 
     def GetFirmwareConfig(self):
         firmware = self.operations['Firmware']
@@ -144,8 +156,8 @@ class Camera():
         self.conf_numbers = firmware.get(self.firmware)
         if self.firmware in firmware:
             print('\n\033[32mВерсия прошивки известна!\033[0m\n')
-        elif basic_fw and self.upgrade:
-            if self.firmware < basic_fw:
+        if basic_fw and self.upgrade:
+            if self.firmware < basic_fw: # вернуть <
                 print('\n\033[33mСтарая версия прошивки!\033[0m\n')
                 if not os.path.exists('firmware'):
                     print('\033[31mПапка с прошивками не найдена!\n'
@@ -156,7 +168,7 @@ class Camera():
                 if after_update.FirmwareVersion == basic_fw:
                     self.firmware = basic_fw
                 else:
-                    print('\033[33mОбновление не удалась!\n'
+                    print('\033[33mОбновление не удалось!\n'
                           'Будет выполнена только конфигурация.\033[0m\n')
         else:
             self.firmware_new = True
@@ -174,14 +186,12 @@ class Camera():
         fw_name = file['fw'].get(fw_id)
 
         def upgrade():
-            timeout = 2
             for p in params:
                 try:
                     if p.get('files'):
                         p['files'] = {
                             "file": open(FW_DIR + f'/{fw_name}', 'rb')}
-                        self._request(**p, timeout=timeout)
-                    self._request(**p, timeout=timeout)
+                    self._request(**p)
                 except Exception:
                     pass
 
@@ -194,6 +204,10 @@ class Camera():
             process.start()
             not_alive = False
             for i in range(timeout):
+                if i == int(timeout * 0.7) and not not_alive:
+                    pbar.leave = False
+                    process.kill()
+                    break
                 ping = host_ping(host=self.host, count=3)
                 if not ping.is_alive and not not_alive:
                     not_alive = True
@@ -520,7 +534,7 @@ if __name__ == '__main__':
     try:
         ip = find_ip()
         if ip:
-            setup = Camera(host=ip, passwd=ADMIN_PASSWD)
+            setup = Camera(host=ip)
             setup.setup_camera()
         else:
             print('\033[31mКамера с дефолтным ip не найдена.\033[0m')

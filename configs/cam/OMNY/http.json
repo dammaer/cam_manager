@@ -95,15 +95,6 @@
         "1": [
             {
                 "method": "POST",
-                "url": "/action/upgrade?op=prepare"
-            },
-            {
-                "method": "POST",
-                "url": ":1224/action/upload?file=firmware",
-                "files": true
-            },
-            {
-                "method": "POST",
                 "url": "/action/upload?file=firmware",
                 "files": true
             }
