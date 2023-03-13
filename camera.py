@@ -157,7 +157,7 @@ class Camera():
         if self.firmware in firmware:
             print('\n\033[32mВерсия прошивки известна!\033[0m\n')
         if basic_fw and self.upgrade:
-            if self.firmware < basic_fw: # вернуть <
+            if self.firmware < basic_fw:
                 print('\n\033[33mСтарая версия прошивки!\033[0m\n')
                 if not os.path.exists('firmware'):
                     print('\033[31mПапка с прошивками не найдена!\n'
