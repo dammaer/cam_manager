@@ -81,10 +81,10 @@ def replace_http_params(structure, old_value, new_value):
     return new_structure
 
 
-def sleep_bar(sec):
+def sleep_bar(sec, msg):
     t = trange(sec, leave=False,
                bar_format='{postfix[0]} {postfix[1][value]} {postfix[2]}',
-               postfix=["Wait", dict(value=sec), 'sec.'])
+               postfix=[msg, dict(value=sec), 'sec.'])
     for _ in t:
         time.sleep(1)
         t.postfix[1]["value"] -= 1

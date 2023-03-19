@@ -154,8 +154,6 @@ class Camera():
         firmware = self.operations['Firmware']
         basic_fw = self.operations['CamParams'].get('basicfirmware')
         self.conf_numbers = firmware.get(self.firmware)
-        if self.firmware in firmware:
-            print('\n\033[32mВерсия прошивки известна!\033[0m\n')
         if basic_fw and self.upgrade:
             if self.firmware < basic_fw:
                 print('\n\033[33mСтарая версия прошивки!\033[0m\n')
@@ -170,6 +168,9 @@ class Camera():
                 else:
                     print('\033[33mОбновление не удалось!\n'
                           'Будет выполнена только конфигурация.\033[0m\n')
+                return
+        if self.firmware in firmware:
+            print('\n\033[32mВерсия прошивки известна!\033[0m\n')
         else:
             self.firmware_new = True
             print('\n\033[33mНеизвестная прошивка камеры: '
@@ -204,7 +205,7 @@ class Camera():
             process.start()
             not_alive = False
             for i in range(timeout):
-                if i == int(timeout * 0.7) and not not_alive:
+                if i == int(timeout * 0.8) and not not_alive:
                     pbar.leave = False
                     process.kill()
                     break

@@ -1,22 +1,30 @@
 import os
 import sys
 
-if not os.path.exists('configs'):
-    print('\n\033[33mДля запуска утилиты необходима '
-          'директория configs c конфигурационными файлами!\n\033[0m')
+from updates import UpdateAppError, UpdateConfDirsError, Updates
+from arg_parser import Parser
+
+try:
+    pars_args = Parser().parse_args(sys.argv[1:])
+    exec_file = sys.executable
+    if exec_file.split('/')[-1] != 'python':
+        Updates(exec_file, pars_args.updates_server).check()
+except UpdateConfDirsError as e:
+    print(e)
     sys.exit()
+except UpdateAppError as e:
+    print(e)
 
 from datetime import datetime as dt
 
 from onvif2 import ONVIFError
 
-from camera import Camera, ModelNotFound, BadCamera
-from env import SWI_IP
+from camera import BadCamera, Camera, ModelNotFound
+from env import SWI_IP, SWI_UPLINK
 from poe_switch import SwiFail, Switch
-from utils import (brute_force, find_ip, get_ip, host_ping,
-                   input_with_timeout, mac_check,
-                   mcast_recv, mcast_send, sleep_bar)
-from utils import MacAddressBad
+from utils import (MacAddressBad, brute_force, find_ip, get_ip, host_ping,
+                   input_with_timeout, mac_check, mcast_recv, mcast_send,
+                   sleep_bar)
 
 
 def single_setup():
@@ -48,12 +56,12 @@ def multi_setup():
     while True:
         if host_ping(SWI_IP, count=2).is_alive:
             print('\033[32mPOE коммутатор работает.\033[0m\n'
-                  '\033[35mЕсли камеры подключены и линки '
+                  '\033[36mЕсли камеры подключены и линки '
                   'на свиче загорелись,\nто введите любую цифру кроме 0'
                   f' (0 - отмена). Таймаут {timeout} сек..\033[0m')
         else:
-            print('\033[31mВключите POE коммутатор SNR-S2982G-24T-POE-E!\n'
-                  'Убедитесь, что 24 порт - uplink.\033[0m')
+            print('\033[31mВключите POE коммутатор!\n'
+                  f'Убедитесь, что {SWI_UPLINK} порт - uplink.\033[0m')
             break
         try:
             cam_connected = int(input_with_timeout(timeout))
@@ -83,11 +91,11 @@ def multi_setup():
         with open(f'log/{d_t}.log', 'a+') as f:
             f.write(cam_count_msg)
             for port in cam_on_ports:
-                print(f'\033[35mНастраиваем камеру на {port} порту.\033[0m')
+                print(f'\033[36mНастраиваем камеру на {port} порту.\033[0m')
                 switch.enable_port(port)
                 # Ждем 5 сек. после включения порта, чтобы камера
                 # гарантированно отвечала на пинг.
-                sleep_bar(5)
+                sleep_bar(5, 'Wait')
                 ip = find_ip(count=2)
                 result = f'\n-----{port} порт:-----'
                 if ip:

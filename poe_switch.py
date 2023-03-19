@@ -37,7 +37,7 @@ class Switch():
             output = re.sub(r'\s+', '&', output)
             for strg in output.split(';'):
                 port_num = strg.split('&')[0].split('/')[-1]
-                if 'UP/UP' in strg and port_num <= SWI_MAX_POE_ETH_PORTS:
+                if 'UP/UP' in strg and int(port_num) <= int(SWI_MAX_POE_ETH_PORTS):
                     if port_num != SWI_UPLINK:
                         self.ports_up.append(port_num)
         else:
