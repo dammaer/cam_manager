@@ -74,13 +74,13 @@ class Updates():
                 print('\033[36mОбновление установлено \U0001F3C1\n'
                       'Запустите утилиту заново!\033[0m')
                 sys.exit()
-        except requests.exceptions.ConnectionError:
+        except (requests.exceptions.ConnectionError, KeyError):
             if confDirNotExist:
                 raise UpdateConfDirsError(
                     '\033[33mНе удалось загрузить конфигурационные файлы '
                     'т.к. сервер обновлений не доступен.\n'
-                    'Загрузите и распакуйте zip архивы configs и firmware '
-                    'в директорию с утилитой!\033[0m'
+                    'Загрузите вручную и распакуйте zip архивы configs '
+                    'и firmware в директорию с утилитой!\033[0m'
                 )
             raise UpdateAppError('\033[33mСервер обновлений '
-                                 'не доступен!\033[0m')
+                                 'недоступен!\033[0m')

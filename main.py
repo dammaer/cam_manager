@@ -35,7 +35,7 @@ def single_setup():
             setup = Camera(host=ip)
             setup.setup_camera()
         else:
-            print('\n\033[31mКамера с дефолтным ip не найдена.\033[0m\n')
+            print('\033[33mКамера с дефолтным ip не найдена.\033[0m\n')
     except ONVIFError as e:
         print(f'\033[31mНе удалось произвести настройку!\nПричина: {e}\033[0m')
     except ModelNotFound as e:
@@ -60,7 +60,7 @@ def multi_setup():
                   'на свиче загорелись,\nто введите любую цифру кроме 0'
                   f' (0 - отмена). Таймаут {timeout} сек..\033[0m')
         else:
-            print('\033[31mВключите POE коммутатор!\n'
+            print('\033[33mВключите POE коммутатор!\n'
                   f'Убедитесь, что {SWI_UPLINK} порт - uplink.\033[0m')
             break
         try:
