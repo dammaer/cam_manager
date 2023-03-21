@@ -1,6 +1,6 @@
 import argparse
 
-VERSION = '1.4.0'
+VERSION = '1.5.0'
 
 
 def Parser():
@@ -12,7 +12,7 @@ def Parser():
         )
     parser.add_argument('-v', '--version',
                         action='version',
-                        help = 'Вывести номер версии',
+                        help='Вывести номер версии',
                         version=VERSION)
     parser.add_argument('-u', '--updates_server',
                         help='Указать url сервера обновлений. '

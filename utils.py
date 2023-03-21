@@ -95,15 +95,11 @@ def inputTimeOutHandler(signum, frame):
     raise InputTimedOut
 
 
-def input_with_timeout(timeout=0):
-    unput = 0
-    try:
-        signal.signal(signal.SIGALRM, inputTimeOutHandler)
-        signal.alarm(timeout)
-        unput = input('\033[32m> \033[0m')
-        signal.alarm(0)
-    except InputTimedOut:
-        pass
+def input_with_timeout(timeout=0, msg='>'):
+    signal.signal(signal.SIGALRM, inputTimeOutHandler)
+    signal.alarm(timeout)
+    unput = input(f'\033[36m{msg} \033[0m')
+    signal.alarm(0)
     return unput
 
 

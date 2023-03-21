@@ -1,8 +1,8 @@
 import os
 import sys
 
-from updates import UpdateAppError, UpdateConfDirsError, Updates
 from arg_parser import Parser
+from updates import UpdateAppError, UpdateConfDirsError, Updates
 
 try:
     pars_args = Parser().parse_args(sys.argv[1:])
@@ -15,16 +15,33 @@ except UpdateConfDirsError as e:
 except UpdateAppError as e:
     print(e)
 
+import time
 from datetime import datetime as dt
 
 from onvif2 import ONVIFError
+from simple_term_menu import TerminalMenu
 
 from camera import BadCamera, Camera, ModelNotFound
 from env import SWI_IP, SWI_UPLINK
 from poe_switch import SwiFail, Switch
-from utils import (MacAddressBad, brute_force, find_ip, get_ip, host_ping,
-                   input_with_timeout, mac_check, mcast_recv, mcast_send,
-                   sleep_bar)
+from utils import (InputTimedOut, MacAddressBad, brute_force, find_ip, get_ip,
+                   host_ping, input_with_timeout, mac_check, mcast_recv,
+                   mcast_send, sleep_bar)
+
+INPUT_MAC_TIMEOUT = 50
+
+
+def menu(menu_items, menu_title=None, clear_screen=True):
+    menu_cursor_style = ("fg_cyan", "bold")
+    menu = TerminalMenu(
+        menu_entries=menu_items,
+        title=menu_title,
+        menu_cursor="> ",
+        menu_cursor_style=menu_cursor_style,
+        cycle_cursor=True,
+        clear_screen=clear_screen
+    )
+    return menu
 
 
 def single_setup():
@@ -36,8 +53,8 @@ def single_setup():
             setup.setup_camera()
         else:
             print('\033[33mКамера с дефолтным ip не найдена.\033[0m\n')
-    except ONVIFError as e:
-        print(f'\033[31mНе удалось произвести настройку!\nПричина: {e}\033[0m')
+    except ONVIFError:
+        print('\033[33mНе удалось подключиться! Повторите попытку.\033[0m\n')
     except ModelNotFound as e:
         error_msg = ('\nНе удалось произвести '
                      f'настройку!\nПричина: {e}\n')
@@ -46,108 +63,84 @@ def single_setup():
         error_msg = ('\nНе удалось произвести '
                      f'настройку!\nПричина: {e}\n')
         print(f'\033[31m{error_msg}\033[0m')
-    finally:
-        print('Выход из режима настройки одной камеры...')
 
 
 def multi_setup():
-    timeout = 20
-    run = False
-    while True:
-        if host_ping(SWI_IP, count=2).is_alive:
-            print('\033[32mPOE коммутатор работает.\033[0m\n'
-                  '\033[36mЕсли камеры подключены и линки '
-                  'на свиче загорелись,\nто введите любую цифру кроме 0'
-                  f' (0 - отмена). Таймаут {timeout} сек..\033[0m')
-        else:
-            print('\033[33mВключите POE коммутатор!\n'
-                  f'Убедитесь, что {SWI_UPLINK} порт - uplink.\033[0m')
-            break
-        try:
-            cam_connected = int(input_with_timeout(timeout))
-            if cam_connected:
-                print('Отлично! Начинаем настройку!\n')
-                run = True
-                break
+    d_t = dt.now().strftime('%Y-%m-%d_%H:%M')
+    switch = Switch()
+    switch.turning_on_ports()
+    switch.ethernet_status()
+    cam_on_ports = switch.ports_up
+    cam_count_msg = f'Камер подключено: {len(cam_on_ports)}.\n'
+    if not len(cam_on_ports):
+        print('\033[31mНет подключенных камер!\033[0m\n')
+        return
+    print(cam_count_msg)
+    switch.turning_off_ports()
+    if not os.path.exists('log'):
+        os.makedirs('log')
+    with open(f'log/{d_t}.log', 'a+') as f:
+        f.write(cam_count_msg)
+        for port in cam_on_ports:
+            print(f'\033[36mНастраиваем камеру на {port} порту.\033[0m')
+            switch.enable_port(port)
+            # Ждем 5 сек. после включения порта, чтобы камера
+            # гарантированно отвечала на пинг.
+            sleep_bar(5, 'Wait')
+            ip = find_ip(count=2)
+            result = f'\n-----{port} порт:-----'
+            if ip:
+                print(f'Дефолтный ip камеры: {ip}.')
+                try:
+                    msg = Camera(host=ip).setup_camera()
+                    result += msg
+                    switch.disable_port(port)
+                except ONVIFError as e:
+                    error_msg = ('\nНе удалось произвести '
+                                 f'настройку!\nПричина: {e}\n')
+                    result += error_msg
+                    print(f'\033[31m{error_msg}\033[0m')
+                    switch.disable_port(port)
+                except ModelNotFound as e:
+                    error_msg = ('\nНе удалось произвести '
+                                 f'настройку!\nПричина: {e}\n')
+                    result += error_msg
+                    print(f'\033[31m{error_msg}\033[0m')
+                    switch.disable_port(port)
+                except BadCamera as e:
+                    error_msg = ('\nНе удалось произвести '
+                                 f'настройку!\nПричина: {e}\n')
+                    print(f'\033[31m{error_msg}\033[0m')
             else:
-                break
-        except ValueError:
-            print('\033[33mВведите цифру!\033[0m')
-
-    if run:
-        d_t = dt.now().strftime('%Y-%m-%d_%H:%M')
-        switch = Switch()
-        switch.turning_on_ports()
-        switch.ethernet_status()
-        cam_on_ports = switch.ports_up
-        cam_count_msg = f'Камер подключено: {len(cam_on_ports)}.\n'
-        if not len(cam_on_ports):
-            print('\033[31mНет подключенных камер!\033[0m')
-            return
-        print(cam_count_msg)
-        switch.turning_off_ports()
-        if not os.path.exists('log'):
-            os.makedirs('log')
-        with open(f'log/{d_t}.log', 'a+') as f:
-            f.write(cam_count_msg)
-            for port in cam_on_ports:
-                print(f'\033[36mНастраиваем камеру на {port} порту.\033[0m')
-                switch.enable_port(port)
-                # Ждем 5 сек. после включения порта, чтобы камера
-                # гарантированно отвечала на пинг.
-                sleep_bar(5, 'Wait')
-                ip = find_ip(count=2)
-                result = f'\n-----{port} порт:-----'
-                if ip:
-                    print(f'Дефолтный ip камеры: {ip}.')
-                    try:
-                        msg = Camera(host=ip).setup_camera()
-                        result += msg
-                        switch.disable_port(port)
-                    except ONVIFError as e:
-                        error_msg = ('\nНе удалось произвести '
-                                     f'настройку!\nПричина: {e}\n')
-                        result += error_msg
-                        print(f'\033[31m{error_msg}\033[0m')
-                        switch.disable_port(port)
-                    except ModelNotFound as e:
-                        error_msg = ('\nНе удалось произвести '
-                                     f'настройку!\nПричина: {e}\n')
-                        result += error_msg
-                        print(f'\033[31m{error_msg}\033[0m')
-                        switch.disable_port(port)
-                    except BadCamera as e:
-                        error_msg = ('\nНе удалось произвести '
-                                     f'настройку!\nПричина: {e}\n')
-                        print(f'\033[31m{error_msg}\033[0m')
-                else:
-                    not_found_msg = ('\nWARNING! Возможно камера уже '
-                                     'настроена! Не найдена по '
-                                     'дефолтному ip.\n')
-                    result += not_found_msg
-                    print(f'\033[33m{not_found_msg}\033[0m')
-                f.write(result)
-        switch.turning_on_ports()
-        print('\033[32mНастройка завершена!\033[0m')
+                not_found_msg = ('\nWARNING! Возможно камера уже '
+                                 'настроена! Не найдена по '
+                                 'дефолтному ip.\n')
+                result += not_found_msg
+                print(f'\033[33m{not_found_msg}\033[0m')
+            f.write(result)
+    switch.turning_on_ports()
+    print('\033[32mНастройка завершена!\033[0m\n')
 
 
 def factory_reset():
     mac = None
     ip = None
-    timeout = 50
-    print(f'Введите mac-адрес камеры (таймаут {timeout} сек.). 0 - отмена')
     while True:
         try:
-            mac = mac_check(input_with_timeout(timeout))
-            print('Получаем ip...')
+            mac = mac_check(input_with_timeout(INPUT_MAC_TIMEOUT,
+                                               '0 - отмена>'))
+            print('\nПолучаем ip...')
             rb_ip = get_ip(mac)
             ip = (rb_ip if rb_ip and host_ping(rb_ip, count=2).is_alive
                   else find_ip(count=2))
         except MacAddressBad as e:
             zero = e.args[0]
             if zero.isdigit() and int(zero) == 0:
+                print('\033[33mОтмена\033[0m\n')
                 break
             print(f'\033[33m{e.args[1]} Попробуйте ещё раз.\033[0m')
+        except InputTimedOut:
+            break
         if ip:
             print(f'IP камеры: {ip}. Приступаем к сбросу...')
             bf = brute_force()
@@ -183,46 +176,93 @@ def factory_reset():
                   'от офисного роутера и не найдена ни по одному из '
                   'дефолтных ip!\033[0m\n')
         if mac:
-            print('Выход из режима сброса...')
             break
 
 
 def setup():
-    timeout = 120
-    banner = ('\033[36m _ _  _ _    _ _  _  _  _  _  _  _\n'
+    banner = ('\033[?25l\033[36m _ _  _ _    _ _  _  _  _  _  _  _\n'
               '(_(_|| | |  | | |(_|| |(_|(_|(/_| \n'
-              '                           _|     \033[0m\n')
-    msg = (f'\nВыберите режим настройки (таймаут {timeout} сек.):\n'
-           '1 - настройка одной камеры\n'
-           '2 - настройка нескольких камер с использованием POE коммутатора\n'
-           '3 - сброс камеры к заводским настройкам\n'
-           '0 - завершение работы')
-    print(banner, msg)
-    while True:
-        try:
-            mode = int(input_with_timeout(timeout))
-            match mode:
-                case 0:
-                    break
-                case 1:
-                    single_setup()
-                    print(msg)
-                case 2:
-                    multi_setup()
-                    print(msg)
-                case 3:
-                    factory_reset()
-                    print(msg)
-                case _:
-                    print('\033[33mВведите предложенные варианты!\033[0m')
-        except ValueError:
-            print('\033[33mВведите цифру!\033[0m')
+              '                           _|     \n'
+              '  > https://github.com/dammaer\033[0m')
+    banner_shown = False
+    title = 'Выберите режим настройки:\n'
+    options = ["Настройка одной камеры",
+               "Настройка нескольких камер с использованием POE коммутатора",
+               "Сброс камеры к заводским настройкам",
+               "Завершение работы (Q или Esc)"]
+    main_menu_exit = False
+    single_setup_menu_back = False
+    multi_setup_menu_back = False
+    factory_reset_menu_back = False
+
+    while not main_menu_exit:
+        if not banner_shown:
+            os.system('cls' if os.name == 'nt' else 'clear')
+            print(banner)
+            banner_shown = True
+            time.sleep(1.5)
+        main_select = menu(options, title).show()
+        match main_select:
+            case 0:
+                while not single_setup_menu_back:
+                    single_title = ('Если камера подключена и линк\n'
+                                    'загорелcя, то выберите кнопку "Запуск"\n')
+                    single_setup_select = menu(['Запуск', 'Назад'],
+                                               single_title,
+                                               clear_screen=False).show()
+                    match single_setup_select:
+                        case 0:
+                            single_setup()
+                        case 1 | None:
+                            single_setup_menu_back = True
+                single_setup_menu_back = False
+            case 1:
+                while not multi_setup_menu_back:
+                    if host_ping(SWI_IP, count=2).is_alive:
+                        multi_title = ('POE коммутатор работает!\n'
+                                       'Если камеры подключены и все линки\n'
+                                       'загорелись, то выберите "Запуск"\n'
+                                       )
+                        multi_setup_select = menu(['Запуск', 'Назад'],
+                                                  multi_title,
+                                                  clear_screen=False).show()
+                        match multi_setup_select:
+                            case 0:
+                                multi_setup()
+                            case 1 | None:
+                                multi_setup_menu_back = True
+                    else:
+                        multi_title = ('Включите POE коммутатор!\n'
+                                       f'Убедитесь, что {SWI_UPLINK} '
+                                       'порт - uplink.\n')
+                        multi_setup_select = menu(['Назад'],
+                                                  multi_title).show()
+                        match multi_setup_select:
+                            case 0 | None:
+                                multi_setup_menu_back = True
+                multi_setup_menu_back = False
+            case 2:
+                while not factory_reset_menu_back:
+                    factory_title = ('Введите mac-адрес камеры '
+                                     f'(таймаут {INPUT_MAC_TIMEOUT} с.).\n')
+                    factory_reset_select = menu(['Ввести mac-адрес', 'Назад'],
+                                                factory_title,
+                                                clear_screen=False).show()
+                    match factory_reset_select:
+                        case 0:
+                            factory_reset()
+                        case 1 | None:
+                            factory_reset_menu_back = True
+                factory_reset_menu_back = False
+            case 3 | None:
+                main_menu_exit = True
 
 
 if __name__ == '__main__':
     import multiprocessing
 
     is_running = mcast_recv()
+
     if is_running:
         print('\033[33mПроцесс настройки уже выполняется '
               f'одним из пользователей на хосте {is_running}!\033[0m')
