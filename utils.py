@@ -8,9 +8,6 @@ from itertools import product
 from icmplib import multiping, ping
 from tqdm import trange
 
-from env import DEF_IP, OTHER_LOGINS, OTHER_PASSWDS
-from ros_old_api import RosOldApi
-
 MCAST_GRP = '224.0.0.4'
 MCAST_PORT = 4000
 
@@ -28,39 +25,22 @@ def host_ping(host, count=1):
     return result
 
 
-def find_ip(count=3, interval=0.5):
+def find_ip(def_ip, count=3, interval=0.5):
     '''
     Send ICMP Echo Request packets to default ip.
     '''
-    result = multiping(DEF_IP, count, interval,
+    result = multiping(def_ip, count, interval,
                        timeout=1, privileged=False)
     for host in result:
         if host.is_alive:
             return host.address
 
 
-def get_ip(mac):
-    '''
-    Getting an IP address from a router (mikrotik).
-    '''
-    rb = RosOldApi()
-    ip = None
-    count = 0
-    while count < 3:
-        lease = rb.get_lease_info(mac)
-        if lease:
-            ip = lease[0]['address']
-            break
-        count += 1
-        time.sleep(2)
-    return ip
-
-
-def brute_force():
+def brute_force(other_logins, other_passwds):
     '''
     Brute force of usernames and passwords. Used when resetting the camera.
     '''
-    for login, passwd in product(OTHER_LOGINS, OTHER_PASSWDS):
+    for login, passwd in product(other_logins, other_passwds):
         yield login, passwd
 
 

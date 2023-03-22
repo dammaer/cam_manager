@@ -22,9 +22,10 @@ from onvif2 import ONVIFError
 from simple_term_menu import TerminalMenu
 
 from camera import BadCamera, Camera, ModelNotFound
-from env import SWI_IP, SWI_UPLINK
+from env import DEF_IP, OTHER_LOGINS, OTHER_PASSWDS, SWI_IP, SWI_UPLINK
 from poe_switch import SwiFail, Switch
-from utils import (InputTimedOut, MacAddressBad, brute_force, find_ip, get_ip,
+from ros_old_api import get_ip
+from utils import (InputTimedOut, MacAddressBad, brute_force, find_ip,
                    host_ping, input_with_timeout, mac_check, mcast_recv,
                    mcast_send, sleep_bar)
 
@@ -46,7 +47,7 @@ def menu(menu_items, menu_title=None, clear_screen=True):
 
 def single_setup():
     try:
-        ip = find_ip(count=2)
+        ip = find_ip(DEF_IP, count=2)
         if ip:
             print(f'Дефолтный ip камеры: {ip}.')
             setup = Camera(host=ip)
@@ -87,7 +88,7 @@ def multi_setup():
             # Ждем 5 сек. после включения порта, чтобы камера
             # гарантированно отвечала на пинг.
             sleep_bar(5, 'Wait')
-            ip = find_ip(count=2)
+            ip = find_ip(DEF_IP, count=2)
             result = f'\n-----{port} порт:-----'
             if ip:
                 print(f'Дефолтный ip камеры: {ip}.')
@@ -132,7 +133,7 @@ def factory_reset():
             print('\nПолучаем ip...')
             rb_ip = get_ip(mac)
             ip = (rb_ip if rb_ip and host_ping(rb_ip, count=2).is_alive
-                  else find_ip(count=2))
+                  else find_ip(DEF_IP, count=2))
         except MacAddressBad as e:
             zero = e.args[0]
             if zero.isdigit() and int(zero) == 0:
@@ -143,7 +144,7 @@ def factory_reset():
             break
         if ip:
             print(f'IP камеры: {ip}. Приступаем к сбросу...')
-            bf = brute_force()
+            bf = brute_force(OTHER_LOGINS, OTHER_PASSWDS)
             while True:
                 try:
                     login, passwd = next(bf)
@@ -183,7 +184,7 @@ def setup():
     banner = ('\033[?25l\033[36m _ _  _ _    _ _  _  _  _  _  _  _\n'
               '(_(_|| | |  | | |(_|| |(_|(_|(/_| \n'
               '                           _|     \n'
-              '  > https://github.com/dammaer\033[0m')
+              '   > https://github.com/dammaer\033[0m')
     banner_shown = False
     title = 'Выберите режим настройки:\n'
     options = ["Настройка одной камеры",

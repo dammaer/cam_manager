@@ -13,7 +13,8 @@ from zeep import helpers
 
 from env import (ADMIN_PASSWD, CONF_DIR, DEF_IP, FW_DIR, NTP_DNS, PRECONFIG_IP,
                  VIEWER_PASSWD)
-from utils import find_ip, get_ip, host_ping, replace_http_params
+from utils import find_ip, host_ping, replace_http_params
+from ros_old_api import get_ip
 
 # progress bar params
 BAR_FMT = '{l_bar}{bar}'
@@ -485,7 +486,7 @@ class Camera():
                   ncols=NCOLS, colour=COLOUR,
                   desc='Resetting') as pbar:
             for i in range(timeout):
-                ip = find_ip()
+                ip = find_ip(DEF_IP)
                 if ip:
                     def_ip = ip
                     pbar.update(total - (i * (total / timeout)))
@@ -533,7 +534,7 @@ class Camera():
 
 if __name__ == '__main__':
     try:
-        ip = find_ip()
+        ip = find_ip(DEF_IP)
         if ip:
             setup = Camera(host=ip)
             setup.setup_camera()

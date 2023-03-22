@@ -1,9 +1,12 @@
+import time
+
 import routeros_api
 
 from env import RB_IP, RB_LOGIN, RB_PASSWD, RB_ROS_VERSION
 
 
 class RosOldApi:
+
     def __init__(self):
         self.connection = routeros_api.RouterOsApiPool(
             RB_IP,
@@ -24,6 +27,21 @@ class RosOldApi:
 
     def __del__(self):
         self.connection.disconnect()
+
+
+def get_ip(mac):
+    '''Getting an IP address from the router (mikrotik).'''
+    rb = RosOldApi()
+    ip = None
+    count = 0
+    while count < 3:
+        lease = rb.get_lease_info(mac)
+        if lease:
+            ip = lease[0]['address']
+            break
+        count += 1
+        time.sleep(2)
+    return ip
 
 
 if __name__ == '__main__':
