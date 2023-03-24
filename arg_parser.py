@@ -18,6 +18,9 @@ def Parser():
                         help='Указать url сервера обновлений. '
                              'Пример: http://server:8080/cm/cam-manager',
                         metavar='URL')
+    parser.add_argument('-d', '--disable_updates',
+                        action='store_true',
+                        help='Отключить обновления')
     return parser
 
 

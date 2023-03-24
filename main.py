@@ -5,10 +5,15 @@ from arg_parser import Parser
 from updates import UpdateAppError, UpdateConfDirsError, Updates
 
 try:
-    pars_args = Parser().parse_args(sys.argv[1:])
+    prs = Parser().parse_args(sys.argv[1:])
     exec_file = sys.executable
-    if exec_file.split('/')[-1] != 'python':
-        Updates(exec_file, pars_args.updates_server).check()
+    if exec_file.split('/')[-1] != 'python' and not prs.disable_updates:
+        Updates(exec_file, prs.updates_server).check()
+    if not os.path.exists('configs'): # if prs.disable_updates == True
+        print('\033[33mОтсутствуют папки с конфигурационными файлами!\n'
+              'Загрузите вручную и распакуйте zip архивы\nconfigs '
+              'и firmware в директорию с утилитой!\033[0m')
+        sys.exit()
 except UpdateConfDirsError as e:
     print(e)
     sys.exit()

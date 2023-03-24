@@ -6,8 +6,6 @@ from pathlib import Path
 
 import requests
 
-from utils import sleep_bar
-
 
 class UpdateAppError(Exception):
     pass
@@ -57,8 +55,7 @@ class Updates():
 
             if not self.md5_checksum(self.exec_file):
                 response = self.get_files()
-                os.popen(f'rm -f {self.exec_file}')
-                sleep_bar(5, 'Updating')
+                os.remove(self.exec_file)
                 with open(self.exec_file, 'wb') as file:
                     file.write(response.content)
                 Path(self.exec_file).chmod(0o755)
