@@ -8,7 +8,7 @@ isodate==0.6.1
 kdtree==0.16
 lxml==4.9.2
 mccabe==0.7.0
-onvif2-zeep==0.3.3
+onvif2-zeep==0.3.4
 pexpect==4.8.0
 platformdirs==2.6.0
 ptyprocess==0.7.0
