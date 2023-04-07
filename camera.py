@@ -13,8 +13,7 @@ from zeep import helpers
 
 from env import (ADMIN_PASSWD, CONF_DIR, DEF_IP, FW_DIR, NTP_DNS, PRECONFIG_IP,
                  VIEWER_PASSWD)
-from utils import find_ip, host_ping, replace_http_params
-from ros_old_api import get_ip
+from utils import find_ip, get_ip, host_ping, replace_http_params
 
 # progress bar params
 BAR_FMT = '{l_bar}{bar}'
@@ -38,13 +37,14 @@ class Camera():
     conf_numbers = None
     selected_conf = {}
 
-    def __init__(self, host, port=80, user='admin',
-                 passwd='admin', upgrade=True):
+    def __init__(self, host, port=80, user='admin', passwd='admin',
+                 upgrade=True, sudo=False):
         self.host = host
         self.port = port
         self.user = user
         self.passwd = passwd
         self.upgrade = upgrade
+        self.sudo = sudo
         self.PreConfiguration()
         self.onvif = ONVIFCamera(self.host, port,
                                  user, self.passwd, CONF_DIR + '/wsdl')
@@ -499,7 +499,7 @@ class Camera():
         self.devicemgmt.SystemReboot()
 
     def get_info_after_setup(self, ip=None):
-        ip = ip if ip else get_ip(self.mac)
+        ip = ip if ip else get_ip(self.mac, self.sudo)
         info = (f'\nModel: {self.model}\n'
                 f'Firmware: {self.firmware}\n'
                 f'MAC-address: {self.mac}\n'

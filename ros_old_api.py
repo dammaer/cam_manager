@@ -29,19 +29,17 @@ class RosOldApi:
         self.connection.disconnect()
 
 
-def get_ip(mac):
+def get_ip_from_rb(mac):
     '''Getting an IP address from the router (mikrotik).'''
     rb = RosOldApi()
-    ip = None
     count = 0
     while count < 3:
         lease = rb.get_lease_info(mac)
         if lease:
             ip = lease[0]['address']
-            break
+            return ip
         count += 1
         time.sleep(2)
-    return ip
 
 
 if __name__ == '__main__':

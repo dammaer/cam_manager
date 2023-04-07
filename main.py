@@ -9,7 +9,7 @@ try:
     exec_file = sys.executable
     if exec_file.split('/')[-1] != 'python' and not prs.disable_updates:
         Updates(exec_file, prs.updates_server).check()
-    if not os.path.exists('configs'): # if prs.disable_updates == True
+    if not os.path.exists('configs'):  # if prs.disable_updates == True
         print('\033[33mОтсутствуют папки с конфигурационными файлами!\n'
               'Загрузите вручную и распакуйте zip архивы\nconfigs '
               'и firmware в директорию с утилитой!\033[0m')
@@ -29,12 +29,12 @@ from simple_term_menu import TerminalMenu
 from camera import BadCamera, Camera, ModelNotFound
 from env import DEF_IP, OTHER_LOGINS, OTHER_PASSWDS, SWI_IP, SWI_UPLINK
 from poe_switch import SwiFail, Switch
-from ros_old_api import get_ip
-from utils import (InputTimedOut, MacAddressBad, brute_force, find_ip,
+from utils import (InputTimedOut, MacAddressBad, brute_force, find_ip, get_ip,
                    host_ping, input_with_timeout, mac_check, mcast_recv,
-                   mcast_send, sleep_bar)
+                   mcast_send, scan_mac, sleep_bar)
 
 INPUT_MAC_TIMEOUT = 50
+SUDO = os.getuid() == 0
 
 
 def menu(menu_items, menu_title=None, clear_screen=True):
@@ -136,7 +136,7 @@ def factory_reset():
             mac = mac_check(input_with_timeout(INPUT_MAC_TIMEOUT,
                                                '0 - отмена>'))
             print('\nПолучаем ip...')
-            rb_ip = get_ip(mac)
+            rb_ip = get_ip(mac, sudo=SUDO)
             ip = (rb_ip if rb_ip and host_ping(rb_ip, count=2).is_alive
                   else find_ip(DEF_IP, count=2))
         except MacAddressBad as e:
@@ -185,6 +185,52 @@ def factory_reset():
             break
 
 
+def without_additional_devices():
+    d_t = dt.now().strftime('%Y-%m-%d_%H:%M')
+    if not os.path.exists('log'):
+        os.makedirs('log')
+    with open(f'log/sudo_mode_{d_t}.log', 'a+') as f:
+        find_cam = 0
+        result = '-----sudo mode:-----'
+        while True:
+            def_ip = find_ip(DEF_IP, count=2)
+            if def_ip:
+                try:
+                    print(f'Дефолтный ip камеры: {def_ip}.')
+                    mac_addr = scan_mac(def_ip)
+                    os.system(f'arp -s {def_ip} {mac_addr}')
+                    msg = Camera(host=def_ip, sudo=SUDO).setup_camera()
+                    result += msg
+                    os.system(f'arp -d {def_ip}')
+                    find_cam += 1
+                    sleep_bar(5, 'Wait')
+                except ONVIFError as e:
+                    error_msg = ('\nНе удалось произвести '
+                                 f'настройку!\nПричина: {e}\n')
+                    result += error_msg
+                    print(f'\033[31m{error_msg}\033[0m')
+                except ModelNotFound as e:
+                    error_msg = ('\nНе удалось произвести '
+                                 f'настройку!\nПричина: {e}\n')
+                    result += error_msg
+                    print(f'\033[31m{error_msg}\033[0m')
+                except BadCamera as e:
+                    error_msg = ('\nНе удалось произвести '
+                                 f'настройку!\nПричина: {e}\n')
+                    print(f'\033[31m{error_msg}\033[0m')
+            else:
+                not_found_msg = ('\nКамер с дефолтным ip '
+                                 'не найдено!\n')
+                if not find_cam:
+                    result += not_found_msg
+                    print(f'\033[33m{not_found_msg}\033[0m')
+                else:
+                    print(f'\033[32mКамер настроено: {find_cam}\033[0m')
+                f.write(result)
+                print('\033[32mНастройка завершена!\033[0m\n')
+                break
+
+
 def setup():
     banner = ('\033[?25l\033[36m _ _  _ _    _ _  _  _  _  _  _  _\n'
               '(_(_|| | |  | | |(_|| |(_|(_|(/_| \n'
@@ -196,10 +242,21 @@ def setup():
                "Настройка нескольких камер с использованием POE коммутатора",
                "Сброс камеры к заводским настройкам",
                "Завершение работы (Q или Esc)"]
+    options_with_sudo = ["Настройка одной или нескольких камер",
+                         "Сброс камеры к заводским настройкам",
+                         "Завершение работы (Q или Esc)"]
     main_menu_exit = False
     single_setup_menu_back = False
     multi_setup_menu_back = False
     factory_reset_menu_back = False
+    wad_menu_back = False
+
+    factory_title = ('Введите mac-адрес камеры '
+                     f'(таймаут {INPUT_MAC_TIMEOUT} с.).\n')
+    factory_reset_select = menu(['Ввести mac-адрес',
+                                 'Назад'],
+                                factory_title,
+                                clear_screen=False)
 
     while not main_menu_exit:
         if not banner_shown:
@@ -207,61 +264,87 @@ def setup():
             print(banner)
             banner_shown = True
             time.sleep(1.5)
-        main_select = menu(options, title).show()
-        match main_select:
-            case 0:
-                while not single_setup_menu_back:
-                    single_title = ('Если камера подключена и линк\n'
-                                    'загорелcя, то выберите кнопку "Запуск"\n')
-                    single_setup_select = menu(['Запуск', 'Назад'],
-                                               single_title,
-                                               clear_screen=False).show()
-                    match single_setup_select:
-                        case 0:
-                            single_setup()
-                        case 1 | None:
-                            single_setup_menu_back = True
-                single_setup_menu_back = False
-            case 1:
-                while not multi_setup_menu_back:
-                    if host_ping(SWI_IP, count=2).is_alive:
-                        multi_title = ('POE коммутатор работает!\n'
-                                       'Если камеры подключены и все линки\n'
-                                       'загорелись, то выберите "Запуск"\n'
-                                       )
-                        multi_setup_select = menu(['Запуск', 'Назад'],
-                                                  multi_title,
-                                                  clear_screen=False).show()
-                        match multi_setup_select:
+        if not SUDO:
+            main_select = menu(options, title).show()
+            match main_select:
+                case 0:
+                    while not single_setup_menu_back:
+                        single_title = ('Если камера подключена и линк\n'
+                                        'загорелcя, то выберите кнопку '
+                                        '"Запуск"\n')
+                        single_setup_select = menu(['Запуск', 'Назад'],
+                                                   single_title,
+                                                   clear_screen=False).show()
+                        match single_setup_select:
                             case 0:
-                                multi_setup()
+                                single_setup()
                             case 1 | None:
-                                multi_setup_menu_back = True
-                    else:
-                        multi_title = ('Включите POE коммутатор!\n'
-                                       f'Убедитесь, что {SWI_UPLINK} '
-                                       'порт - uplink.\n')
-                        multi_setup_select = menu(['Назад'],
-                                                  multi_title).show()
-                        match multi_setup_select:
-                            case 0 | None:
-                                multi_setup_menu_back = True
-                multi_setup_menu_back = False
-            case 2:
-                while not factory_reset_menu_back:
-                    factory_title = ('Введите mac-адрес камеры '
-                                     f'(таймаут {INPUT_MAC_TIMEOUT} с.).\n')
-                    factory_reset_select = menu(['Ввести mac-адрес', 'Назад'],
-                                                factory_title,
+                                single_setup_menu_back = True
+                    single_setup_menu_back = False
+                case 1:
+                    while not multi_setup_menu_back:
+                        if host_ping(SWI_IP, count=2).is_alive:
+                            multi_title = ('POE коммутатор работает!\n'
+                                           'Если камеры подключены и '
+                                           'все линки\n загорелись, то '
+                                           'выберите "Запуск"\n'
+                                           )
+                            multi_setup_select = menu(
+                                ['Запуск', 'Назад'],
+                                multi_title,
+                                clear_screen=False).show()
+                            match multi_setup_select:
+                                case 0:
+                                    multi_setup()
+                                case 1 | None:
+                                    multi_setup_menu_back = True
+                        else:
+                            multi_title = ('Включите POE коммутатор!\n'
+                                           f'Убедитесь, что {SWI_UPLINK} '
+                                           'порт - uplink.\n')
+                            multi_setup_select = menu(['Назад'],
+                                                      multi_title).show()
+                            match multi_setup_select:
+                                case 0 | None:
+                                    multi_setup_menu_back = True
+                    multi_setup_menu_back = False
+                case 2:
+                    while not factory_reset_menu_back:
+                        match factory_reset_select.show():
+                            case 0:
+                                factory_reset()
+                            case 1 | None:
+                                factory_reset_menu_back = True
+                    factory_reset_menu_back = False
+                case 3 | None:
+                    main_menu_exit = True
+        else:
+            main_select_with_sudo = menu(options_with_sudo, title).show()
+            match main_select_with_sudo:
+                case 0:
+                    while not wad_menu_back:
+                        wad_title = ('Если камеры подключены и линк\n'
+                                     'загорелcя, то выберите кнопку '
+                                     '"Запуск"\n')
+                        wad_setup_select = menu(['Запуск', 'Назад'],
+                                                wad_title,
                                                 clear_screen=False).show()
-                    match factory_reset_select:
-                        case 0:
-                            factory_reset()
-                        case 1 | None:
-                            factory_reset_menu_back = True
-                factory_reset_menu_back = False
-            case 3 | None:
-                main_menu_exit = True
+                        match wad_setup_select:
+                            case 0:
+                                without_additional_devices()
+                            case 1 | None:
+                                wad_menu_back = True
+                    wad_menu_back = False
+                case 1:
+                    while not factory_reset_menu_back:
+                        match factory_reset_select.show():
+                            case 0:
+                                factory_reset()
+                            case 1 | None:
+                                factory_reset_menu_back = True
+                    factory_reset_menu_back = False
+                case 2 | None:
+                    main_menu_exit = True
 
 
 if __name__ == '__main__':

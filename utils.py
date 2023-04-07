@@ -1,12 +1,17 @@
+import fcntl
 import re
 import signal
 import socket
 import struct
 import time
+from scapy.all import conf, get_if_addr, srp
+from scapy.layers.l2 import ARP, Ether
+from ipaddress import IPv4Network
 from itertools import product
-
 from icmplib import multiping, ping
 from tqdm import trange
+
+from ros_old_api import get_ip_from_rb
 
 MCAST_GRP = '224.0.0.4'
 MCAST_PORT = 4000
@@ -34,6 +39,48 @@ def find_ip(def_ip, count=3, interval=0.5):
     for host in result:
         if host.is_alive:
             return host.address
+
+
+def get_local_net_and_mask():
+    iface = str(conf.iface)
+    local_ip = get_if_addr(iface)
+    local_mask = socket.inet_ntoa(
+        fcntl.ioctl(
+            socket.socket(socket.AF_INET, socket.SOCK_DGRAM),
+            35099,
+            struct.pack('256s', iface.encode('utf-8')))[20:24])
+    address = IPv4Network(
+        f'{local_ip}/{local_mask}',
+        strict=False)
+    return f'{address.network_address}/{address.prefixlen}'
+
+
+def scan_ip_by_mac(mac, def_net=None):
+    net = get_local_net_and_mask() if def_net is None else def_net
+    count = 0
+    while count < 5:
+        ans, _ = srp(Ether(dst=mac)/ARP(
+            pdst=net), verbose=0, timeout=3)
+        for i in ans:
+            if i[1].getlayer(Ether).src == mac:
+                return (i[1].getlayer(ARP).psrc)
+        count += 1
+        time.sleep(1)
+
+
+def scan_mac(ip):
+    """
+    Returns MAC address of any device connected to the network
+    If ip is down, returns None instead
+    """
+    ans, _ = srp(
+        Ether(dst='ff:ff:ff:ff:ff:ff')/ARP(pdst=ip), timeout=3, verbose=0)
+    if ans:
+        return ans[0][1].src
+
+
+def get_ip(mac, sudo=False):
+    return get_ip_from_rb(mac) if not sudo else scan_ip_by_mac(mac)
 
 
 def brute_force(other_logins, other_passwds):
@@ -92,21 +139,21 @@ def mac_check(mac):
         raise MacAddressBad(mac, 'Некорректно введён mac-адрес!')
 
 
-def get_local_ip():
-    '''
-    Returns the primary ip address specified to the host.
-    '''
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.settimeout(0)
-    try:
-        # doesn't even have to be reachable
-        s.connect(('1.1.1.1', 1))
-        ip = s.getsockname()[0]
-    except Exception:
-        ip = '127.0.0.1'
-    finally:
-        s.close()
-    return ip
+# def get_local_ip():
+#     '''
+#     Returns the primary ip address specified to the host.
+#     '''
+#     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+#     s.settimeout(0)
+#     try:
+#         # doesn't even have to be reachable
+#         s.connect(('1.1.1.1', 1))
+#         ip = s.getsockname()[0]
+#     except Exception:
+#         ip = '127.0.0.1'
+#     finally:
+#         s.close()
+#     return ip
 
 
 def mcast_send():
@@ -119,7 +166,7 @@ def mcast_send():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, MULTICAST_TTL)
     while True:
-        sock.sendto(get_local_ip().encode(), (MCAST_GRP, MCAST_PORT))
+        sock.sendto(get_if_addr(conf.iface).encode(), (MCAST_GRP, MCAST_PORT))
         time.sleep(0.5)
 
 

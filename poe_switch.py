@@ -52,12 +52,13 @@ class Switch():
     def ethernet_status(self):
         self.telnet.sendline('sh int ethernet status')
         match = self.telnet.expect(self._except)
-        if not match: # Checking when to parse the output
+        if not match:  # Checking when to parse the output
             output = self.telnet.before.replace("\r\n", ";")
             output = re.sub(r'\s+', '&', output)
             for strg in output.split(';'):
                 port_num = strg.split('&')[0].split('/')[-1]
-                if 'UP/UP' in strg and int(port_num) <= int(SWI_MAX_POE_ETH_PORTS):
+                if ('UP/UP' in strg and int(port_num)
+                   <= int(SWI_MAX_POE_ETH_PORTS)):
                     if port_num != SWI_UPLINK:
                         self.ports_up.append(port_num)
 
@@ -109,7 +110,7 @@ class Switch():
         except pexpect.exceptions.EOF:
             raise SwiFail('Режим конфигурации коммутатора используется '
                           'другим пользователем!')
-        
+
     def enable_port(self, port):
         self.enter_conf_mode()
         self.telnet.sendline(f'int ethernet 1/0/{port}')
