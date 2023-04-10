@@ -1,6 +1,5 @@
 import fcntl
 import re
-import signal
 import socket
 import struct
 import time
@@ -15,10 +14,6 @@ from ros_old_api import get_ip_from_rb
 
 MCAST_GRP = '224.0.0.4'
 MCAST_PORT = 4000
-
-
-class InputTimedOut(Exception):
-    pass
 
 
 class MacAddressBad(Exception):
@@ -116,18 +111,6 @@ def sleep_bar(sec, msg):
         time.sleep(1)
         t.postfix[1]["value"] -= 1
         t.update()
-
-
-def inputTimeOutHandler(signum, frame):
-    raise InputTimedOut
-
-
-def input_with_timeout(timeout=0, msg='>'):
-    signal.signal(signal.SIGALRM, inputTimeOutHandler)
-    signal.alarm(timeout)
-    unput = input(f'\033[36m{msg} \033[0m')
-    signal.alarm(0)
-    return unput
 
 
 def mac_check(mac):

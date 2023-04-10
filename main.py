@@ -20,6 +20,7 @@ except UpdateConfDirsError as e:
 except UpdateAppError as e:
     print(e)
 
+import signal
 import time
 from datetime import datetime as dt
 
@@ -29,12 +30,19 @@ from simple_term_menu import TerminalMenu
 from camera import BadCamera, Camera, ModelNotFound
 from env import DEF_IP, OTHER_LOGINS, OTHER_PASSWDS, SWI_IP, SWI_UPLINK
 from poe_switch import SwiFail, Switch
-from utils import (InputTimedOut, MacAddressBad, brute_force, find_ip, get_ip,
-                   host_ping, input_with_timeout, mac_check, mcast_recv,
-                   mcast_send, scan_mac, sleep_bar)
+from utils import (MacAddressBad, brute_force, find_ip, get_ip, host_ping,
+                   mac_check, mcast_recv, mcast_send, scan_mac, sleep_bar)
 
-INPUT_MAC_TIMEOUT = 50
+INPUT_TIMEOUT = 120
 SUDO = os.getuid() == 0
+
+
+class InputTimedOut(Exception):
+    pass
+
+
+def inputTimeOutHandler(signum, frame):
+    raise InputTimedOut
 
 
 def menu(menu_items, menu_title=None, clear_screen=True):
@@ -133,8 +141,9 @@ def factory_reset():
     ip = None
     while True:
         try:
-            mac = mac_check(input_with_timeout(INPUT_MAC_TIMEOUT,
-                                               '0 - отмена>'))
+            signal.alarm(INPUT_TIMEOUT)
+            mac = mac_check(input('\033[36m0 - отмена> \033[0m'))
+            signal.alarm(0)
             print('\nПолучаем ip...')
             rb_ip = get_ip(mac, sudo=SUDO)
             ip = (rb_ip if rb_ip and host_ping(rb_ip, count=2).is_alive
@@ -145,8 +154,6 @@ def factory_reset():
                 print('\033[33mОтмена\033[0m\n')
                 break
             print(f'\033[33m{e.args[1]} Попробуйте ещё раз.\033[0m')
-        except InputTimedOut:
-            break
         if ip:
             print(f'IP камеры: {ip}. Приступаем к сбросу...')
             bf = brute_force(OTHER_LOGINS, OTHER_PASSWDS)
@@ -251,24 +258,26 @@ def setup():
     factory_reset_menu_back = False
     wad_menu_back = False
 
-    factory_title = ('Введите mac-адрес камеры '
-                     f'(таймаут {INPUT_MAC_TIMEOUT} с.).\n')
+    factory_title = ('Введите mac-адрес камеры:\n')
     factory_reset_select = menu(['Ввести mac-адрес',
                                  'Назад'],
                                 factory_title,
                                 clear_screen=False)
+    signal.signal(signal.SIGALRM, inputTimeOutHandler)
 
     while not main_menu_exit:
+        signal.alarm(INPUT_TIMEOUT)
         if not banner_shown:
             os.system('cls' if os.name == 'nt' else 'clear')
             print(banner)
             banner_shown = True
-            time.sleep(1.5)
+            time.sleep(1.2)
         if not SUDO:
             main_select = menu(options, title).show()
             match main_select:
                 case 0:
                     while not single_setup_menu_back:
+                        signal.alarm(INPUT_TIMEOUT)
                         single_title = ('Если камера подключена и линк\n'
                                         'загорелcя, то выберите кнопку '
                                         '"Запуск"\n')
@@ -277,12 +286,14 @@ def setup():
                                                    clear_screen=False).show()
                         match single_setup_select:
                             case 0:
+                                signal.alarm(0)
                                 single_setup()
                             case 1 | None:
                                 single_setup_menu_back = True
                     single_setup_menu_back = False
                 case 1:
                     while not multi_setup_menu_back:
+                        signal.alarm(INPUT_TIMEOUT)
                         if host_ping(SWI_IP, count=2).is_alive:
                             multi_title = ('POE коммутатор работает!\n'
                                            'Если камеры подключены и '
@@ -295,6 +306,7 @@ def setup():
                                 clear_screen=False).show()
                             match multi_setup_select:
                                 case 0:
+                                    signal.alarm(0)
                                     multi_setup()
                                 case 1 | None:
                                     multi_setup_menu_back = True
@@ -310,6 +322,7 @@ def setup():
                     multi_setup_menu_back = False
                 case 2:
                     while not factory_reset_menu_back:
+                        signal.alarm(INPUT_TIMEOUT)
                         match factory_reset_select.show():
                             case 0:
                                 factory_reset()
@@ -323,6 +336,7 @@ def setup():
             match main_select_with_sudo:
                 case 0:
                     while not wad_menu_back:
+                        signal.alarm(INPUT_TIMEOUT)
                         wad_title = ('Если камеры подключены и линк\n'
                                      'загорелcя, то выберите кнопку '
                                      '"Запуск"\n')
@@ -331,12 +345,14 @@ def setup():
                                                 clear_screen=False).show()
                         match wad_setup_select:
                             case 0:
+                                signal.alarm(0)
                                 without_additional_devices()
                             case 1 | None:
                                 wad_menu_back = True
                     wad_menu_back = False
                 case 1:
                     while not factory_reset_menu_back:
+                        signal.alarm(INPUT_TIMEOUT)
                         match factory_reset_select.show():
                             case 0:
                                 factory_reset()
@@ -363,6 +379,8 @@ if __name__ == '__main__':
             setup()
         except SwiFail as e:
             print(f'\033[33m{e}\nНастройка прервана!\033[0m')
+        except InputTimedOut:
+            print(f'\033[33mПрервано по таймауту {INPUT_TIMEOUT} c.\033[0m')
         except KeyboardInterrupt:
             process.kill()
             print('\n\033[33mНастройка прервана!\033[0m')
