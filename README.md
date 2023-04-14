@@ -1,3 +1,8 @@
+<div style="font-family: monospace; text-align: center; white-space: pre; color: #00FFFF">
+ _ _  _ _    _ _  _  _  _  _  _  _
+(_(_|| | |  | | |(_|| |(_|(_|(/_| 
+                          _|    
+</div>
 
 - [Вступление](#Вступление)
 - [Описание](#Описание)
