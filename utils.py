@@ -64,10 +64,10 @@ def scan_ip_by_mac(mac, def_net=None):
 
 
 def scan_mac(ip):
-    """
+    '''
     Returns MAC address of any device connected to the network
     If ip is down, returns None instead
-    """
+    '''
     ans, _ = srp(
         Ether(dst='ff:ff:ff:ff:ff:ff')/ARP(pdst=ip), timeout=3, verbose=0)
     if ans:
@@ -75,6 +75,7 @@ def scan_mac(ip):
 
 
 def get_ip(mac, sudo=False):
+    '''Getting an IP address from a router (mikrotik) or using scapy'''
     return get_ip_from_rb(mac) if not sudo else scan_ip_by_mac(mac)
 
 
@@ -113,13 +114,27 @@ def sleep_bar(sec, msg):
         t.update()
 
 
-def mac_check(mac):
-    mac = mac.strip()
-    mac_pattern = '([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})'
-    if bool(re.match(mac_pattern, mac)):
-        return mac
+def mac_check(mac_address):
+    '''
+    The format of the mac address can be as follows:
+    00:01:02:aa:bb:cc,
+    00-01-02-aa-bb-cc,
+    000102aabbcc.
+    The case of the letters is not important.
+    '''
+    mac_address = mac_address.strip()
+    mac_pattern = '^([0-9A-Fa-f]{2}[:-]?){6}$'
+    if re.match(mac_pattern, mac_address):
+        if re.match('^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$', mac_address):
+            formatted_mac_address = mac_address
+        else:
+            # Если символы разделения отсутствуют, вставляем их
+            mac_address = re.sub('[^0-9A-Fa-f]', '', mac_address)
+            formatted_mac_address = ":".join([mac_address[i:i+2]
+                                              for i in range(0, 12, 2)])
+        return formatted_mac_address
     else:
-        raise MacAddressBad(mac, 'Некорректно введён mac-адрес!')
+        raise MacAddressBad(mac_address, 'Некорректно введён mac-адрес!')
 
 
 # def get_local_ip():

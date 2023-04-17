@@ -1,6 +1,7 @@
 import time
 
-import routeros_api
+from routeros_api import RouterOsApiPool
+from routeros_api.exceptions import RouterOsApiConnectionError
 
 from env import RB_IP, RB_LOGIN, RB_PASSWD, RB_ROS_VERSION
 
@@ -8,7 +9,7 @@ from env import RB_IP, RB_LOGIN, RB_PASSWD, RB_ROS_VERSION
 class RosOldApi:
 
     def __init__(self):
-        self.connection = routeros_api.RouterOsApiPool(
+        self.connection = RouterOsApiPool(
             RB_IP,
             username=RB_LOGIN,
             password=RB_PASSWD,
@@ -31,15 +32,18 @@ class RosOldApi:
 
 def get_ip_from_rb(mac):
     '''Getting an IP address from the router (mikrotik).'''
-    rb = RosOldApi()
-    count = 0
-    while count < 3:
-        lease = rb.get_lease_info(mac)
-        if lease:
-            ip = lease[0]['address']
-            return ip
-        count += 1
-        time.sleep(2)
+    try:
+        rb = RosOldApi()
+        count = 0
+        while count < 3:
+            lease = rb.get_lease_info(mac)
+            if lease:
+                ip = lease[0]['address']
+                return ip
+            count += 1
+            time.sleep(2)
+    except RouterOsApiConnectionError:
+        pass
 
 
 if __name__ == '__main__':
