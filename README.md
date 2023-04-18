@@ -99,3 +99,11 @@ ____
 [:arrow_up: В начало](#mag)
 
 ## Установка:
+
+## References:
+* [ONVIF operations index](http://www.onvif.org/onvif/ver20/util/operationIndex.html)
+* [ONVIF media2 service](https://www.onvif.org/onvif/ver20/media/wsdl/media.wsdl)
+* [ONVIF Network Interface Specifications](https://www.onvif.org/profiles/specifications/)
+* [ONVIF Network Interface Specifications Github](https://github.com/onvif/specs/tree/development/wsdl)
+* [ONVIF Client Implementation in Python](https://github.com/yingchengpa/python-onvif2-zeep)
+* [NAG - IP Видеокамеры](https://nag.wiki/pages/viewpage.action?pageId=25108910)
