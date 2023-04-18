@@ -126,13 +126,13 @@ def mac_check(mac_address):
     mac_pattern = '^([0-9A-Fa-f]{2}[:-]?){6}$'
     if re.match(mac_pattern, mac_address):
         if re.match('^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$', mac_address):
-            formatted_mac_address = mac_address
+            formatted_mac_address = mac_address.replace('-', ':')
         else:
             # Если символы разделения отсутствуют, вставляем их
             mac_address = re.sub('[^0-9A-Fa-f]', '', mac_address)
             formatted_mac_address = ":".join([mac_address[i:i+2]
                                               for i in range(0, 12, 2)])
-        return formatted_mac_address
+        return formatted_mac_address.lower()
     else:
         raise MacAddressBad(mac_address, 'Некорректно введён mac-адрес!')
 

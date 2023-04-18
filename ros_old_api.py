@@ -17,7 +17,7 @@ class RosOldApi:
         self.api = self.connection.get_api()
 
     def get_lease_info(self, mac_address):
-        mac_address = mac_address.replace('-', ':').upper()
+        mac_address = mac_address.upper()
         return self.api.get_resource(
             '/ip/dhcp-server/lease').get(mac_address=mac_address)
 
