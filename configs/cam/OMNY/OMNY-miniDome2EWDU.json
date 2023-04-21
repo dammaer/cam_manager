@@ -5,21 +5,18 @@
     },
     "CamParams": {
         "auth": "Basic",
-        "basicfirmware": "IPCAM_V4.04.51.210325",
-        "services_versions": {
-            "media": 2
-        }
+        "basicfirmware": "IPCAM_V4.04.51.210325"
     },
     "FirmwareUpgradeParams": {
         "http": "1"
     },
-    "SetVideoEncoderConfiguration0": {
+    "SetVideoEncoderMainStream": {
         "Encoding": "H264",
         "Width": 1280,
         "Height": 720,
         "BitrateLimit": 2048
     },
-    "SetVideoEncoderConfiguration1": {
+    "SetVideoEncoderSubStream": {
         "Encoding": "H264",
         "Width": 640,
         "Height": 360,

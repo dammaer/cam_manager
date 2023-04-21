@@ -1,6 +1,6 @@
 {
-    "SetVideoEncoderConfiguration0": {},
-    "SetVideoEncoderConfiguration1": {},
+    "SetVideoEncoderMainStream": {},
+    "SetVideoEncoderSubStream": {},
     "DeleteOSD": {
         "1": {
             "method": "POST",

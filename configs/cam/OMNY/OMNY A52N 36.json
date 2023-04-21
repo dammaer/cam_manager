@@ -6,18 +6,15 @@
         }
     },
     "CamParams": {
-        "auth": "Digest",
-        "services_versions": {
-            "media": 2
-        }
+        "auth": "Digest"
     },
-    "SetVideoEncoderConfiguration0": {
+    "SetVideoEncoderMainStream": {
         "Encoding": "H264",
         "Width": 1920,
         "Height": 1080,
         "BitrateLimit": 2048
     },
-    "SetVideoEncoderConfiguration1": {
+    "SetVideoEncoderSubStream": {
         "Encoding": "H264",
         "Width": 640,
         "Height": 480,

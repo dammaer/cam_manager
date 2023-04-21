@@ -2,18 +2,14 @@
     "Firmware": {
         "2.820.0000000.36.R, Build Date 2021-07-23": {}
     },
-    "CamParams": {
-        "services_versions": {
-            "media": 1
-        }
-    },
-    "SetVideoEncoderConfiguration0": {
+    "CamParams": {},
+    "SetVideoEncoderMainStream": {
         "Encoding": "H264",
         "Width": 1920,
         "Height": 1080,
         "BitrateLimit": 2048
     },
-    "SetVideoEncoderConfiguration1": {
+    "SetVideoEncoderSubStream": {
         "Encoding": "H264",
         "Width": 704,
         "Height": 576,

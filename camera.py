@@ -6,7 +6,7 @@ from datetime import datetime as dt
 from glob import glob
 
 import requests
-from onvif2 import ONVIFCamera, ONVIFError
+from onvif2 import SERVICES, ONVIFCamera, ONVIFError
 from requests.auth import HTTPBasicAuth, HTTPDigestAuth
 from tqdm import tqdm
 from zeep import helpers
@@ -36,6 +36,7 @@ class Camera():
     firmware_new = False
     conf_numbers = None
     selected_conf = {}
+    services_versions = {}
 
     def __init__(self, host, port=80, user='admin', passwd='admin',
                  upgrade=True, sudo=False):
@@ -46,8 +47,8 @@ class Camera():
         self.upgrade = upgrade
         self.sudo = sudo
         self.PreConfiguration()
-        self.onvif = ONVIFCamera(self.host, port,
-                                 user, self.passwd, CONF_DIR + '/wsdl')
+        self.onvif = ONVIFCamera(self.host, port, user, self.passwd,
+                                 CONF_DIR + '/wsdl', adjust_time=True)
         self.devicemgmt = self.onvif.create_devicemgmt_service()
         self.network = self.devicemgmt.GetNetworkInterfaces()[0]
         self.mac = self.network.Info.HwAddress
@@ -57,8 +58,6 @@ class Camera():
         self.file = glob(CONF_DIR + f'/**/{self.model}.json',
                          recursive=True)
         self._open_config()
-        self.services_versions = self.operations[
-            'CamParams']['services_versions']
         self.media = self._get_media_service_version()
         self.profiles = self._get_profiles()
         self.profile_token = self.profiles[0].token
@@ -83,11 +82,20 @@ class Camera():
             raise ModelNotFound(f'Модель {self.model} не найдена!')
 
     def _get_media_service_version(self):
-        match self.services_versions['media']:
-            case 1:
-                return self.onvif.create_media_service()
-            case 2:
-                return self.onvif.create_media2_service()
+        if SERVICES['media2']['ns'] in self.onvif.xaddrs:
+            media2 = self.onvif.create_media2_service()
+            test_vec = media2.GetVideoEncoderConfigurations()[0]
+            try:
+                media2.SetVideoEncoderConfiguration(test_vec)
+                self.services_versions['media'] = 2
+                return media2
+            except ONVIFError:
+                print('\033[33mКамера не поддерживает изменение параметров '
+                      'методами onvif media v2.\nНет возможности поменять '
+                      'например кодек c H264 на H265.\033[0m\n')
+                pass
+        self.services_versions['media'] = 1
+        return self.onvif.create_media_service()
 
     def _get_profiles(self):
         media_profiles = self.media.GetProfiles()
@@ -95,6 +103,21 @@ class Camera():
             return media_profiles
         else:
             raise BadCamera('Камера не поддерживает основные сервисы onvif!')
+
+    def _synchronize_time(self):
+        '''
+        After changing the time settings on some cameras, synchronization
+        is required to perform authorization time
+        '''
+        self.onvif.update_xaddrs()  # the method performs time synchronization
+        # when the adjust_time parameter is True
+        # after that, you need to re-create all the services
+        self.devicemgmt = self.onvif.create_devicemgmt_service()
+        match self.services_versions['media']:
+            case 1:
+                self.media = self.onvif.create_media_service()
+            case 2:
+                self.media = self.onvif.create_media2_service()
 
     def _to_dict(self, obj):
         return helpers.serialize_object(obj, dict)
@@ -306,8 +329,18 @@ class Camera():
                 self._request(**p)
             self.passwd = ADMIN_PASSWD
 
+    def SetVideoEncoderConfiguration(self, vec_num, vec_conf, json_conf):
+        match self.services_versions['media']:
+            case 1:
+                enum = ('JPEG', 'MPEG4', 'H264')
+                if json_conf['Encoding'] not in enum:
+                    json_conf['Encoding'] = 'H264'
+                self.OldSetVideoEncoderConfiguration(vec_num, json_conf)
+            case 2:
+                self.media.SetVideoEncoderConfiguration(vec_conf)
+
     @_selecting_config
-    def SetVideoEncoderConfiguration0(self, *args):
+    def SetVideoEncoderMainStream(self, *args):
         '''
         Method of changing the main stream.
         Media service version 2.
@@ -320,17 +353,13 @@ class Camera():
         vec.RateControl.BitrateLimit = conf['BitrateLimit']
         if 'http' in conf:
             num = conf['http']
-            self._request(**self.http['SetVideoEncoderConfiguration0'][num])
+            self._request(**self.http['SetVideoEncoderMainStream'][num])
         else:
-            match self.services_versions['media']:
-                case 1:
-                    self.OldSetVideoEncoderConfiguration(0, conf)
-                case 2:
-                    self.media.SetVideoEncoderConfiguration(vec)
+            self.SetVideoEncoderConfiguration(0, vec, conf)
         return self.TestVideoEncoderConfiguration(0, vec)
 
     @_selecting_config
-    def SetVideoEncoderConfiguration1(self, *args):
+    def SetVideoEncoderSubStream(self, *args):
         '''
         Method of changing the sub stream.
         Media service version 2.
@@ -343,13 +372,9 @@ class Camera():
         vec.RateControl.BitrateLimit = conf['BitrateLimit']
         if 'http' in conf:
             num = conf['http']
-            self._request(**self.http['SetVideoEncoderConfiguration1'][num])
+            self._request(**self.http['SetVideoEncoderSubStream'][num])
         else:
-            match self.services_versions['media']:
-                case 1:
-                    self.OldSetVideoEncoderConfiguration(1, conf)
-                case 2:
-                    self.media.SetVideoEncoderConfiguration(vec)
+            self.SetVideoEncoderConfiguration(1, vec, conf)
         return self.TestVideoEncoderConfiguration(1, vec)
 
     def OldSetVideoEncoderConfiguration(self, vec_num, conf):
@@ -404,6 +429,7 @@ class Camera():
             d_t.DaylightSavings = False
             d_t.TimeZone = conf
             self.devicemgmt.SetSystemDateAndTime(d_t)
+        self._synchronize_time()
         return self.TestSystemDateAndTime()
 
     @_selecting_config
@@ -419,6 +445,7 @@ class Camera():
             ntp.FromDHCP = False
             ntp.NTPManual = {"Type": "DNS", "DNSname": NTP_DNS}
             self.devicemgmt.SetNTP(ntp)
+        self._synchronize_time()
         return self.TestNTP()
 
     def CreateUsers(self):
@@ -464,7 +491,9 @@ class Camera():
                     self.port,
                     self.user,
                     ADMIN_PASSWD,
-                    'configs/wsdl/').devicemgmt.SetNetworkInterfaces(net)
+                    'configs/wsdl/',
+                    adjust_time=True
+                    ).devicemgmt.SetNetworkInterfaces(net)
         process = multiprocessing.Process(
             target=change)
         process.start()
@@ -543,3 +572,6 @@ if __name__ == '__main__':
     except ONVIFError as e:
         print('\033[31mНе удалось произвести настройку!\n'
               f'Причина: {e}\033[0m')
+
+    # setup = Camera(host='192.168.1.2')
+    # setup.SetAudioEncoderConfiguration()

@@ -3,18 +3,15 @@
         "IPCAM_V4.02.05.190926": {}
     },
     "CamParams": {
-        "auth": "Basic",
-        "services_versions": {
-            "media": 1
-        }
+        "auth": "Basic"
     },
-    "SetVideoEncoderConfiguration0": {
+    "SetVideoEncoderMainStream": {
         "Encoding": "H264",
         "Width": 1280,
         "Height": 720,
         "BitrateLimit": 2048
     },
-    "SetVideoEncoderConfiguration1": {
+    "SetVideoEncoderSubStream": {
         "Encoding": "H264",
         "Width": 640,
         "Height": 360,

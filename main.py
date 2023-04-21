@@ -25,6 +25,7 @@ import time
 from datetime import datetime as dt
 
 from onvif2 import ONVIFError
+from requests.exceptions import ConnectionError
 from simple_term_menu import TerminalMenu
 
 from camera import BadCamera, Camera, ModelNotFound
@@ -67,7 +68,7 @@ def single_setup():
             setup.setup_camera()
         else:
             print('\033[33mКамера с дефолтным ip не найдена.\033[0m\n')
-    except ONVIFError:
+    except (ONVIFError, ConnectionError):
         print('\033[33mНе удалось подключиться! Повторите попытку.\033[0m\n')
     except ModelNotFound as e:
         error_msg = ('\nНе удалось произвести '
@@ -297,7 +298,7 @@ def setup():
                         if host_ping(SWI_IP, count=2).is_alive:
                             multi_title = ('POE коммутатор работает!\n'
                                            'Если камеры подключены и '
-                                           'все линки\n загорелись, то '
+                                           'все линки\nзагорелись, то '
                                            'выберите "Запуск"\n'
                                            )
                             multi_setup_select = menu(
