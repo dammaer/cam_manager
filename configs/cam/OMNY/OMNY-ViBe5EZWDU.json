@@ -1,8 +1,5 @@
 {
     "Firmware": {},
-    "CamParams": {
-        "auth": "Basic"
-    },
     "SetVideoEncoderMainStream": {
         "Encoding": "H264",
         "Width": 1920,

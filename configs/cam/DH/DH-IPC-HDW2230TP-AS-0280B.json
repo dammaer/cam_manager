@@ -3,7 +3,6 @@
         "2.800.0000000.24.R, Build Date 2020-10-14": {},
         "2.820.0000000.49.R, Build Date 2022-08-15": {}
     },
-    "CamParams": {},
     "SetVideoEncoderMainStream": {
         "Encoding": "H264",
         "Width": 1920,

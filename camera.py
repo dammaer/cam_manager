@@ -39,12 +39,13 @@ class Camera():
     services_versions = {}
 
     def __init__(self, host, port=80, user='admin', passwd='admin',
-                 upgrade=True, sudo=False):
+                 upgrade=True, preconf=True, sudo=False):
         self.host = host
         self.port = port
         self.user = user
         self.passwd = passwd
         self.upgrade = upgrade
+        self.preconf = preconf
         self.sudo = sudo
         self.PreConfiguration()
         self.onvif = ONVIFCamera(self.host, port, user, self.passwd,
@@ -68,10 +69,9 @@ class Camera():
             self.file = self.file[0]
             with open(self.file, 'r') as f:
                 self.operations = json.load(f)
-            if self.operations['CamParams'].get('auth'):
-                http = f"{self.file.rpartition('/')[0]}/http.json"
-                with open(http, 'r') as f:
-                    self.http = json.load(f)
+            http = f"{self.file.rpartition('/')[0]}/http.json"
+            with open(http, 'r') as f:
+                self.http = json.load(f)
             self.GetFirmwareConfig()
         else:
             if not os.path.exists('log'):
@@ -153,30 +153,27 @@ class Camera():
                  headers=None, files=None, json=None, timeout=None):
         base_url = f"http://{self.host}{url}"
 
-        def http_auth(type):
-            match type:
-                case 'Basic':
-                    return HTTPBasicAuth(self.user, self.passwd)
-                case 'Digest':
-                    return HTTPDigestAuth(self.user, self.passwd)
-                case _:
-                    return None
-
         if self.session is None:
-            auth = (self.operations['CamParams'].get('auth')
-                    if self.operations else None)
             self.session = requests.Session()
-            self.session.auth = http_auth(auth)
-        result = self.session.request(method, url=base_url, data=data,
-                                      headers=headers, files=files, json=json,
-                                      timeout=timeout)
-        if result.status_code == 200:
-            return True
-        return False
+        auth_enum = (HTTPBasicAuth(self.user, self.passwd),
+                     HTTPDigestAuth(self.user, self.passwd))
+        for auth in auth_enum:
+            self.session.auth = auth
+            try:
+                result = self.session.request(method, url=base_url, data=data,
+                                              headers=headers, files=files,
+                                              json=json, timeout=timeout)
+                if result.status_code == 200:
+                    break
+            except requests.exceptions.ReadTimeout:
+                # In the case of an http request after which there is
+                # no response from the camera. For example,
+                # changing the ip address.
+                break
 
     def GetFirmwareConfig(self):
         firmware = self.operations['Firmware']
-        basic_fw = self.operations['CamParams'].get('basicfirmware')
+        basic_fw = self.operations['Firmware'].get('basicfirmware')
         self.conf_numbers = firmware.get(self.firmware)
         if basic_fw and self.upgrade:
             if self.firmware < basic_fw:
@@ -320,7 +317,7 @@ class Camera():
         For Dahua cameras and cameras where you first need
         to set user settings to enable access to the onfiv service
         '''
-        if self.host in PRECONFIG_IP:
+        if self.host in PRECONFIG_IP and self.preconf:
             file = glob(CONF_DIR + f'/**/{PRECONFIG_IP[self.host]}.json',
                         recursive=True)[0]
             with open(file, 'r') as f:
@@ -343,7 +340,6 @@ class Camera():
     def SetVideoEncoderMainStream(self, *args):
         '''
         Method of changing the main stream.
-        Media service version 2.
         '''
         conf = args[0]
         vec = self.media.GetVideoEncoderConfigurations()[0]
@@ -362,7 +358,6 @@ class Camera():
     def SetVideoEncoderSubStream(self, *args):
         '''
         Method of changing the sub stream.
-        Media service version 2.
         '''
         conf = args[0]
         vec = self.media.GetVideoEncoderConfigurations()[1]
@@ -472,7 +467,7 @@ class Camera():
         conf = self.operations["SetDNS"]
         if 'http' in conf:
             num = conf['http']
-            self._request(**self.http['SetDNS'][num])
+            self._request(**self.http['SetDNS'][num], timeout=3)
         else:
             self.devicemgmt.SetDNS({'FromDHCP': True})
 
@@ -572,6 +567,3 @@ if __name__ == '__main__':
     except ONVIFError as e:
         print('\033[31mНе удалось произвести настройку!\n'
               f'Причина: {e}\033[0m')
-
-    # setup = Camera(host='192.168.1.2')
-    # setup.SetAudioEncoderConfiguration()

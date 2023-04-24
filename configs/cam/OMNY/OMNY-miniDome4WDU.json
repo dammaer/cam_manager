@@ -2,9 +2,6 @@
     "Firmware": {
         "IPCAM_V4.01.08.190529": {}
     },
-    "CamParams": {
-        "auth": "Basic"
-    },
     "SetVideoEncoderMainStream": {
         "Encoding": "H264",
         "Width": 1280,

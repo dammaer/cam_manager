@@ -162,7 +162,7 @@ def factory_reset():
                 try:
                     login, passwd = next(bf)
                     camera = Camera(host=ip, user=login, passwd=passwd,
-                                    upgrade=False)
+                                    upgrade=False, preconf=False)
                     def_ip = camera.SetSystemFactoryDefault()
                     if def_ip:
                         print(camera.get_info_after_setup(ip=def_ip))

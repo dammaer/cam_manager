@@ -1,0 +1,10 @@
+{
+    "SetVideoEncoderMainStream": {},
+    "SetVideoEncoderSubStream": {},
+    "DeleteOSD": {},
+    "SetAudioEncoderConfiguration": {},
+    "SetSystemDateAndTime": {},
+    "SetNTP": {},
+    "SetDNS": {},
+    "FirmwareUpgradeParams": {}
+}

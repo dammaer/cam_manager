@@ -1,11 +1,8 @@
 {
     "Firmware": {
+        "basicfirmware": "IPCAM_V4.04.51.210325",
         "IPCAM_V4.04.51.210325": {},
         "IPCAM_V4.05.51.210325": {}
-    },
-    "CamParams": {
-        "auth": "Basic",
-        "basicfirmware": "IPCAM_V4.04.51.210325"
     },
     "FirmwareUpgradeParams": {
         "http": "1"

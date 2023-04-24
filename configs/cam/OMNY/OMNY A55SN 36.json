@@ -2,9 +2,6 @@
     "Firmware": {
         "ONVIF_V3.3.0.20210705": {}
     },
-    "CamParams": {
-        "auth": "Digest"
-    },
     "SetVideoEncoderMainStream": {
         "Encoding": "H264",
         "Width": 1920,

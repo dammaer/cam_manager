@@ -9,9 +9,6 @@
             "SetNTP": "1"
         }
     },
-    "CamParams": {
-        "auth": "Digest"
-    },
     "SetVideoEncoderMainStream": {
         "Encoding": "H264",
         "Width": 1920,
