@@ -20,6 +20,11 @@ BAR_FMT = '{l_bar}{bar}'
 NCOLS = 30
 COLOUR = 'CYAN'
 
+ACTIONS = ('SetVideoEncoderMainStream', 'SetVideoEncoderSubStream',
+           'DeleteOSD', 'SetAudioEncoderConfiguration',
+           'SetSystemDateAndTime', 'SetNTP', 'CreateUsers', 'SetUser',
+           'SetDNS', 'SetNetworkInterfaces')
+
 
 class ModelNotFound(Exception):
     pass
@@ -534,17 +539,20 @@ class Camera():
     def setup_camera(self):
         msg = ''
         errors = ''
+        sorted_operations = {}
+        for op in ACTIONS:
+            value = self.operations.get(op)
+            if value or isinstance(value, dict):
+                sorted_operations[op] = value
         for operation in tqdm(
-            self.operations,
+            sorted_operations,
             bar_format=BAR_FMT,
             ncols=NCOLS,
             colour=COLOUR,
             desc='Configuration'
         ):
-            method = getattr(self, operation, None)
-            if method is None:
-                pass
-            elif method() is False:
+            method = getattr(self, operation)
+            if method() is False:
                 errors += f'\nERROR! {operation}\n'
         if not errors:
             self._samosbor()
