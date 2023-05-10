@@ -82,6 +82,7 @@ OMNY-miniDome2WDUv3<br>
 OMNY-miniDome4WDU<br>
 OMNY-miniDome5EU<br>
 OMNY-miniDome5EUv2<br>
+OMNY-miniDome5EWDU<br>
 OMNY_A54N<br>
 OMNY_A55N_28
 </details>
