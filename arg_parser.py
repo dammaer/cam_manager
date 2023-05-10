@@ -1,6 +1,6 @@
 import argparse
 
-VERSION = '1.5.7'
+VERSION = '1.5.8'
 
 
 def Parser():

@@ -18,6 +18,7 @@ class UpdateConfDirsError(Exception):
 class Updates():
     UPD_BASE_URL = 'http://192.168.13.198:8081/cm/'
     APP_NAME = 'cam-manager'
+    confDirNotExist = False
 
     def __init__(self, exec_file, updates_server):
         if updates_server:
@@ -38,32 +39,42 @@ class Updates():
             url = self.UPD_BASE_URL + file_name
         return requests.get(url, timeout=(3, None))
 
-    def check(self):
-        conf_dirs = ('configs', 'firmware')
-        confDirNotExist = False
-        try:
-            for dir in conf_dirs:
-                if not os.path.exists(dir):
-                    confDirNotExist = True
-                    zip_name = f'{dir}.zip'
-                    response = self.get_files(zip_name)
-                    os.makedirs(dir)
-                    with open(zip_name, 'wb') as file:
-                        file.write(response.content)
-                    shutil.unpack_archive(zip_name, dir)
-                    os.remove(zip_name)
+    def download_and_unpack_dir(self, name):
+        zip_name = f'{name}.zip'
+        response = self.get_files(zip_name)
+        os.makedirs(name, exist_ok=True)
+        with open(zip_name, 'wb') as file:
+            file.write(response.content)
+        shutil.unpack_archive(zip_name, name)
+        os.remove(zip_name)
 
+    def check_dirs(self, dirs_exist=False):
+        conf_dirs = ('configs', 'firmware')
+        for dir in conf_dirs:
+            if not os.path.exists(dir):
+                self.confDirNotExist = True
+                self.download_and_unpack_dir(dir)
+            if dirs_exist:
+                self.download_and_unpack_dir(dir)
+
+    def check(self):
+        try:
+            self.check_dirs()
             if not self.md5_checksum(self.exec_file):
                 response = self.get_files()
                 os.remove(self.exec_file)
                 with open(self.exec_file, 'wb') as file:
                     file.write(response.content)
                 Path(self.exec_file).chmod(0o755)
+                if not self.confDirNotExist:
+                    print('\033[36mЗагружаем новые '
+                          'конфигурационные файлы...\033[0m')
+                    self.check_dirs(dirs_exist=True)
                 print('\033[36mОбновление установлено \U0001F3C1\n'
                       'Запустите утилиту заново!\033[0m')
                 sys.exit()
         except (requests.exceptions.ConnectionError, KeyError):
-            if confDirNotExist:
+            if self.confDirNotExist:
                 raise UpdateConfDirsError(
                     '\033[33mНе удалось загрузить конфигурационные файлы '
                     'т.к. сервер обновлений не доступен.\n'

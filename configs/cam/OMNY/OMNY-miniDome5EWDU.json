@@ -1,0 +1,38 @@
+{
+    "Firmware": {
+        "basicfirmware": "IPCAM_V4.05.56.210423",
+        "IPCAM_V4.05.56.210423": {}
+    },
+    "FirmwareUpgradeParams": {
+        "http": "1"
+    },
+    "SetVideoEncoderMainStream": {
+        "Encoding": "H264",
+        "Width": 1280,
+        "Height": 720,
+        "BitrateLimit": 2048
+    },
+    "SetVideoEncoderSubStream": {
+        "Encoding": "H264",
+        "Width": 640,
+        "Height": 360,
+        "BitrateLimit": 512
+    },
+    "DeleteOSD": {},
+    "SetAudioEncoderConfiguration": {
+        "http": "2"
+    },
+    "SetNTP": {
+        "http": "3"
+    },
+    "CreateUsers": {
+        "Username": "viewer",
+        "UserLevel": "Operator"
+    },
+    "SetUser": {
+        "Username": "admin",
+        "UserLevel": "Administrator"
+    },
+    "SetNetworkInterfaces": {},
+    "FactoryDefault": {}
+}
