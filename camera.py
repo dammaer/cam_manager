@@ -37,7 +37,7 @@ class BadCamera(Exception):
 class Camera():
     operations = None
     http = None
-    session = None
+    session, session_auth = None, None
     firmware_new = False
     conf_numbers = None
     selected_conf = {}
@@ -158,23 +158,25 @@ class Camera():
                  headers=None, files=None, json=None, timeout=None):
         base_url = f"http://{self.host}{url}"
 
+        def get_auth():
+            resp = dict(requests.get(base_url).headers.lower_items())
+            if 'digest' in resp.get('www-authenticate', '').lower():
+                return HTTPDigestAuth(self.user, self.passwd)
+            return HTTPBasicAuth(self.user, self.passwd)
+
         if self.session is None:
             self.session = requests.Session()
-        auth_enum = (HTTPBasicAuth(self.user, self.passwd),
-                     HTTPDigestAuth(self.user, self.passwd))
-        for auth in auth_enum:
-            self.session.auth = auth
-            try:
-                result = self.session.request(method, url=base_url, data=data,
-                                              headers=headers, files=files,
-                                              json=json, timeout=timeout)
-                if result.status_code == 200:
-                    break
-            except requests.exceptions.ReadTimeout:
-                # In the case of an http request after which there is
-                # no response from the camera. For example,
-                # changing the ip address.
-                break
+        self.session.auth = (self.session_auth
+                             if self.session_auth else get_auth())
+        try:
+            self.session.request(method, url=base_url, data=data,
+                                 headers=headers, files=files,
+                                 json=json, timeout=timeout)
+        except requests.exceptions.ReadTimeout:
+            # In the case of an http request after which there is
+            # no response from the camera. For example,
+            # changing the ip address.
+            pass
 
     def GetFirmwareConfig(self):
         firmware = self.operations['Firmware']
@@ -214,13 +216,10 @@ class Camera():
 
         def upgrade():
             for p in params:
-                try:
-                    if p.get('files'):
-                        p['files'] = {
-                            "file": open(FW_DIR + f'/{fw_name}', 'rb')}
-                    self._request(**p)
-                except Exception:
-                    pass
+                if p.get('files'):
+                    p['files'] = {
+                        "file": open(FW_DIR + f'/{fw_name}', 'rb')}
+                self._request(**p)
 
         with tqdm(total=total,
                   bar_format=BAR_FMT,
@@ -565,13 +564,19 @@ class Camera():
 
 
 if __name__ == '__main__':
-    try:
-        ip = find_ip(DEF_IP)
-        if ip:
-            setup = Camera(host=ip)
-            setup.setup_camera()
-        else:
-            print('\033[31mКамера с дефолтным ip не найдена.\033[0m')
-    except ONVIFError as e:
-        print('\033[31mНе удалось произвести настройку!\n'
-              f'Причина: {e}\033[0m')
+    # try:
+    #     ip = find_ip(DEF_IP)
+    #     if ip:
+    #         setup = Camera(host=ip)
+    #         setup.FirmwareUpgrade()
+    #     else:
+    #         print('\033[31mКамера с дефолтным ip не найдена.\033[0m')
+    # except ONVIFError as e:
+    #     print('\033[31mНе удалось произвести настройку!\n'
+    #           f'Причина: {e}\033[0m')
+    ip = find_ip(DEF_IP)
+    if ip:
+        setup = Camera(host=ip)
+        setup.FirmwareUpgrade()
+    else:
+        print('\033[31mКамера с дефолтным ip не найдена.\033[0m')

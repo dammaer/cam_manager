@@ -1,14 +1,11 @@
 {
     "Firmware": {
-        "ONVIF_V3.3.0.20210705": null
-    },
-    "FirmwareUpgradeParams": {
-        "http": "2"
+        "IPCAM_V2.35.180507": {}
     },
     "SetVideoEncoderMainStream": {
         "Encoding": "H264",
-        "Width": 1920,
-        "Height": 1080,
+        "Width": 1280,
+        "Height": 720,
         "BitrateLimit": 2048
     },
     "SetVideoEncoderSubStream": {
@@ -17,23 +14,23 @@
         "Height": 360,
         "BitrateLimit": 512
     },
-    "DeleteOSD": {},
-    "SetSystemDateAndTime": {
-        "TZ": "UTC-3:0"
+    "DeleteOSD": {
+        "http": "1"
     },
-    "SetNTP": {},
+    "SetAudioEncoderConfiguration": {
+        "http": "1"
+    },
+    "SetNTP": {
+        "http": "1"
+    },
     "CreateUsers": {
         "Username": "viewer",
-        "UserLevel": "Extended"
+        "UserLevel": "User"
     },
     "SetUser": {
         "Username": "admin",
         "UserLevel": "Administrator"
     },
-    "SetDNS": {
-        "http": "1"
-    },
-    "FactoryDefault": {
-        "http": "1"
-    }
+    "SetNetworkInterfaces": {},
+    "FactoryDefault": {}
 }

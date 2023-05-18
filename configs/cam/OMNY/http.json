@@ -98,6 +98,13 @@
                 "url": "/action/upload?file=firmware",
                 "files": true
             }
+        ],
+        "2": [
+            {
+                "method": "POST",
+                "url": "/CGI/FileUpload/updateFirmware",
+                "files": true
+            }
         ]
     },
     "FactoryDefault": {
