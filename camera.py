@@ -1,13 +1,16 @@
-import json
-import multiprocessing
 import os
 import time
 from datetime import datetime as dt
 from glob import glob
+from json import dump as json_dump
+from json import load as json_load
+from multiprocessing import Process
 
-import requests
 from onvif2 import SERVICES, ONVIFCamera, ONVIFError
+from requests import Session
+from requests import get as requests_get
 from requests.auth import HTTPBasicAuth, HTTPDigestAuth
+from requests.exceptions import ReadTimeout
 from tqdm import tqdm
 from zeep import helpers
 
@@ -73,10 +76,10 @@ class Camera():
         if self.file:
             self.file = self.file[0]
             with open(self.file, 'r') as f:
-                self.operations = json.load(f)
+                self.operations = json_load(f)
             http = f"{self.file.rpartition('/')[0]}/http.json"
             with open(http, 'r') as f:
-                self.http = json.load(f)
+                self.http = json_load(f)
             self.GetFirmwareConfig()
         else:
             if not os.path.exists('log'):
@@ -131,10 +134,10 @@ class Camera():
         if self.firmware_new:
             config = None
             with open(self.file, 'r') as f:
-                config = json.load(f)
+                config = json_load(f)
             config['Firmware'][self.firmware] = self.selected_conf
             with open(self.file, 'w') as f:
-                json.dump(config, f, indent=4, separators=(',', ': '))
+                json_dump(config, f, indent=4, separators=(',', ': '))
 
     def _selecting_config(func):
         def wrapper(self, *args):
@@ -159,20 +162,20 @@ class Camera():
         base_url = f"http://{self.host}{url}"
 
         def get_auth():
-            resp = dict(requests.get(base_url).headers.lower_items())
+            resp = dict(requests_get(base_url).headers.lower_items())
             if 'digest' in resp.get('www-authenticate', '').lower():
                 return HTTPDigestAuth(self.user, self.passwd)
             return HTTPBasicAuth(self.user, self.passwd)
 
         if self.session is None:
-            self.session = requests.Session()
+            self.session = Session()
         self.session.auth = (self.session_auth
                              if self.session_auth else get_auth())
         try:
             self.session.request(method, url=base_url, data=data,
                                  headers=headers, files=files,
                                  json=json, timeout=timeout)
-        except requests.exceptions.ReadTimeout:
+        except ReadTimeout:
             # In the case of an http request after which there is
             # no response from the camera. For example,
             # changing the ip address.
@@ -210,7 +213,7 @@ class Camera():
         num = self.operations['FirmwareUpgradeParams']['http']
         params = self.http['FirmwareUpgradeParams'][num]
         with open(FW_DIR + '/fw.json', 'r') as f:
-            file = json.load(f)
+            file = json_load(f)
         fw_id = file.get(self.model)
         fw_name = file['fw'].get(fw_id)
 
@@ -225,8 +228,7 @@ class Camera():
                   bar_format=BAR_FMT,
                   ncols=NCOLS, colour=COLOUR,
                   desc='Updating') as pbar:
-            process = multiprocessing.Process(
-                target=upgrade)
+            process = Process(target=upgrade)
             process.start()
             not_alive = False
             for i in range(timeout):
@@ -302,20 +304,6 @@ class Camera():
             return True
         return False
 
-    def TestUsers(self):
-        conf = self.operations['CreateUsers']
-        count = 0
-        while count < 15:
-            resp = self.devicemgmt.GetUsers()
-            for user in self._to_dict(resp):
-                resp_user = user.get('Username')
-                if resp_user == conf['Username']:
-                    return True
-            else:
-                count += 1
-                time.sleep(1)
-        return False
-
     def PreConfiguration(self):
         '''
         For Dahua cameras and cameras where you first need
@@ -325,7 +313,7 @@ class Camera():
             file = glob(CONF_DIR + f'/**/{PRECONFIG_IP[self.host]}.json',
                         recursive=True)[0]
             with open(file, 'r') as f:
-                params = json.load(f)
+                params = json_load(f)
             for p in params['PreConfiguration']:
                 self._request(**p)
             self.passwd = ADMIN_PASSWD
@@ -448,13 +436,15 @@ class Camera():
         return self.TestNTP()
 
     def CreateUsers(self):
-        if not self.TestUsers():
-            conf = self.operations['CreateUsers']
-            user = self.devicemgmt.create_type('CreateUsers')
-            user.User = conf
-            user.User['Password'] = VIEWER_PASSWD
+        conf = self.operations['CreateUsers']
+        user = self.devicemgmt.create_type('CreateUsers')
+        user.User = conf
+        user.User['Password'] = VIEWER_PASSWD
+        try:
             self.devicemgmt.CreateUsers(user)
-        return self.TestUsers()
+            return True
+        except ONVIFError:
+            return False
 
     def SetUser(self):
         conf = self.operations["SetUser"]
@@ -493,8 +483,7 @@ class Camera():
                     'configs/wsdl/',
                     adjust_time=True
                     ).devicemgmt.SetNetworkInterfaces(net)
-        process = multiprocessing.Process(
-            target=change)
+        process = Process(target=change)
         process.start()
         time.sleep(3)
         process.kill()
@@ -564,19 +553,9 @@ class Camera():
 
 
 if __name__ == '__main__':
-    # try:
-    #     ip = find_ip(DEF_IP)
-    #     if ip:
-    #         setup = Camera(host=ip)
-    #         setup.FirmwareUpgrade()
-    #     else:
-    #         print('\033[31mКамера с дефолтным ip не найдена.\033[0m')
-    # except ONVIFError as e:
-    #     print('\033[31mНе удалось произвести настройку!\n'
-    #           f'Причина: {e}\033[0m')
     ip = find_ip(DEF_IP)
     if ip:
         setup = Camera(host=ip)
-        setup.FirmwareUpgrade()
+        setup.setup_camera()
     else:
         print('\033[31mКамера с дефолтным ip не найдена.\033[0m')

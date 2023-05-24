@@ -3,11 +3,12 @@ import re
 import socket
 import struct
 import time
-from scapy.all import conf, get_if_addr, srp
-from scapy.layers.l2 import ARP, Ether
 from ipaddress import IPv4Network
 from itertools import product
+
 from icmplib import multiping, ping
+from scapy.all import conf, get_if_addr, srp
+from scapy.layers.l2 import ARP, Ether
 from tqdm import trange
 
 from ros_old_api import get_ip_from_rb
@@ -135,6 +136,15 @@ def mac_check(mac_address):
         return formatted_mac_address.lower()
     else:
         raise MacAddressBad(mac_address, 'Некорректно введён mac-адрес!')
+
+
+def ip_iface_check(cams_addresses):
+    no_ip_networks = []
+    for addr in cams_addresses:
+        net = addr.rpartition(".")[0] + '.0'
+        if net not in str(conf.route):
+            no_ip_networks.append(net) if net not in no_ip_networks else None
+    return no_ip_networks
 
 
 # def get_local_ip():

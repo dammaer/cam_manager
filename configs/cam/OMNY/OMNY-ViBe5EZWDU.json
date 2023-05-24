@@ -1,5 +1,7 @@
 {
-    "Firmware": {},
+    "Firmware": {
+        "IPCAM_V4.04.87.220422": {}
+    },
     "SetVideoEncoderMainStream": {
         "Encoding": "H264",
         "Width": 1920,

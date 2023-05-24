@@ -32,7 +32,15 @@ from camera import BadCamera, Camera, ModelNotFound
 from env import DEF_IP, OTHER_LOGINS, OTHER_PASSWDS, SWI_IP, SWI_UPLINK
 from poe_switch import SwiFail, Switch
 from utils import (MacAddressBad, brute_force, find_ip, get_ip, host_ping,
-                   mac_check, mcast_recv, mcast_send, scan_mac, sleep_bar)
+                   ip_iface_check, mac_check, mcast_recv, mcast_send, scan_mac,
+                   sleep_bar)
+
+ip_iface = ip_iface_check(DEF_IP)
+if ip_iface:
+    print(('\033[33mДля корректной работы необходимо добавить '
+           f"ip-интерфейс из сети: \n{', '.join(ip_iface)}\033[0m\n"
+           '$ sudo ip addr add 192.168.1.*/24 dev eth0'))
+    sys.exit()
 
 INPUT_TIMEOUT = 120
 SUDO = os.getuid() == 0
@@ -70,11 +78,7 @@ def single_setup():
             print('\033[33mКамера с дефолтным ip не найдена.\033[0m\n')
     except (ONVIFError, ConnectionError):
         print('\033[33mНе удалось подключиться! Повторите попытку.\033[0m\n')
-    except ModelNotFound as e:
-        error_msg = ('\nНе удалось произвести '
-                     f'настройку!\nПричина: {e}\n')
-        print(f'\033[31m{error_msg}\033[0m')
-    except BadCamera as e:
+    except (ModelNotFound, BadCamera) as e:
         error_msg = ('\nНе удалось произвести '
                      f'настройку!\nПричина: {e}\n')
         print(f'\033[31m{error_msg}\033[0m')
@@ -110,22 +114,12 @@ def multi_setup():
                     msg = Camera(host=ip).setup_camera()
                     result += msg
                     switch.disable_port(port)
-                except ONVIFError as e:
+                except (ONVIFError, ModelNotFound, BadCamera) as e:
                     error_msg = ('\nНе удалось произвести '
                                  f'настройку!\nПричина: {e}\n')
                     result += error_msg
                     print(f'\033[31m{error_msg}\033[0m')
                     switch.disable_port(port)
-                except ModelNotFound as e:
-                    error_msg = ('\nНе удалось произвести '
-                                 f'настройку!\nПричина: {e}\n')
-                    result += error_msg
-                    print(f'\033[31m{error_msg}\033[0m')
-                    switch.disable_port(port)
-                except BadCamera as e:
-                    error_msg = ('\nНе удалось произвести '
-                                 f'настройку!\nПричина: {e}\n')
-                    print(f'\033[31m{error_msg}\033[0m')
             else:
                 not_found_msg = ('\nWARNING! Возможно камера уже '
                                  'настроена! Не найдена по '
@@ -212,19 +206,10 @@ def without_additional_devices():
                     os.system(f'arp -d {def_ip}')
                     find_cam += 1
                     sleep_bar(5, 'Wait')
-                except ONVIFError as e:
+                except (ONVIFError, ModelNotFound, BadCamera) as e:
                     error_msg = ('\nНе удалось произвести '
                                  f'настройку!\nПричина: {e}\n')
                     result += error_msg
-                    print(f'\033[31m{error_msg}\033[0m')
-                except ModelNotFound as e:
-                    error_msg = ('\nНе удалось произвести '
-                                 f'настройку!\nПричина: {e}\n')
-                    result += error_msg
-                    print(f'\033[31m{error_msg}\033[0m')
-                except BadCamera as e:
-                    error_msg = ('\nНе удалось произвести '
-                                 f'настройку!\nПричина: {e}\n')
                     print(f'\033[31m{error_msg}\033[0m')
             else:
                 not_found_msg = ('\nКамер с дефолтным ip '
