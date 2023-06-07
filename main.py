@@ -35,11 +35,14 @@ from utils import (MacAddressBad, brute_force, find_ip, get_ip, host_ping,
                    ip_iface_check, mac_check, mcast_recv, mcast_send, scan_mac,
                    sleep_bar)
 
-ip_iface = ip_iface_check(DEF_IP)
+ip_iface, iface = ip_iface_check(DEF_IP)
 if ip_iface:
     print(('\033[33mДля корректной работы необходимо добавить '
-           f"ip-интерфейс из сети: \n{', '.join(ip_iface)}\033[0m\n"
-           '$ sudo ip addr add 192.168.1.*/24 dev eth0'))
+           'ip-интерфейс из сети:\033[0m'))
+    for net in ip_iface:
+        free_ip = net.rpartition(".")[0] + '.*'
+        print((f'\033[33m-> {net}\033[0m\n'
+               f'sudo ip address add {free_ip}/24 dev {iface}'))
     sys.exit()
 
 INPUT_TIMEOUT = 120
@@ -350,7 +353,7 @@ def setup():
 
 
 if __name__ == '__main__':
-    import multiprocessing
+    from multiprocessing import Process
 
     is_running = mcast_recv()
 
@@ -358,7 +361,7 @@ if __name__ == '__main__':
         print('\033[33mПроцесс настройки уже выполняется '
               f'одним из пользователей на хосте {is_running}!\033[0m')
     else:
-        process = multiprocessing.Process(
+        process = Process(
             target=mcast_send)
         process.start()
         try:

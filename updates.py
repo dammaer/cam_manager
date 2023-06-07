@@ -1,10 +1,12 @@
 import os
-import shutil
 import sys
 from hashlib import md5
 from pathlib import Path
+from shutil import unpack_archive
 
-import requests
+from requests import get as requests_get
+from requests import head as requests_head
+from requests.exceptions import ConnectionError
 
 
 class UpdateAppError(Exception):
@@ -30,14 +32,14 @@ class Updates():
         url = self.UPD_BASE_URL + self.APP_NAME
         with open(file_path, 'rb') as f:
             local_file = md5(f.read()).hexdigest()
-        remote_file = requests.head(url).headers['Content-MD5']
+        remote_file = requests_head(url).headers['Content-MD5']
         return local_file == remote_file
 
     def get_files(self, file_name=None):
         url = self.UPD_BASE_URL + self.APP_NAME
         if file_name:
             url = self.UPD_BASE_URL + file_name
-        return requests.get(url, timeout=(3, None))
+        return requests_get(url, timeout=(3, None))
 
     def download_and_unpack_dir(self, name):
         zip_name = f'{name}.zip'
@@ -45,7 +47,7 @@ class Updates():
         os.makedirs(name, exist_ok=True)
         with open(zip_name, 'wb') as file:
             file.write(response.content)
-        shutil.unpack_archive(zip_name, name)
+        unpack_archive(zip_name, name)
         os.remove(zip_name)
 
     def check_dirs(self, dirs_exist=False):
@@ -73,7 +75,7 @@ class Updates():
                 print('\033[36mОбновление установлено \U0001F3C1\n'
                       'Запустите утилиту заново!\033[0m')
                 sys.exit()
-        except (requests.exceptions.ConnectionError, KeyError):
+        except (ConnectionError, KeyError):
             if self.confDirNotExist:
                 raise UpdateConfDirsError(
                     '\033[33mНе удалось загрузить конфигурационные файлы '

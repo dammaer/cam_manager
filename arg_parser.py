@@ -1,10 +1,10 @@
-import argparse
+from argparse import ArgumentParser
 
 VERSION = '1.6.0'
 
 
 def Parser():
-    parser = argparse.ArgumentParser(
+    parser = ArgumentParser(
         prog='cam-manager',
         description='''Утилита для настройки IP-камер.''',
         epilog='''\033[36m(ノ ˘_˘)ノ\033[0m

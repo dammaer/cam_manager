@@ -144,7 +144,7 @@ def ip_iface_check(cams_addresses):
         net = addr.rpartition(".")[0] + '.0'
         if net not in str(conf.route):
             no_ip_networks.append(net) if net not in no_ip_networks else None
-    return no_ip_networks
+    return no_ip_networks, conf.iface
 
 
 # def get_local_ip():
