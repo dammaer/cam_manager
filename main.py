@@ -91,6 +91,7 @@ def multi_setup():
     d_t = dt.now().strftime('%Y-%m-%d_%H:%M')
     switch = Switch()
     switch.turning_on_ports()
+    time.sleep(5)
     switch.ethernet_status()
     cam_on_ports = switch.ports_up
     cam_count_msg = f'Камер подключено: {len(cam_on_ports)}.\n'
@@ -116,11 +117,13 @@ def multi_setup():
                 try:
                     msg = Camera(host=ip).setup_camera()
                     result += msg
+                    f.write(result)
                     switch.disable_port(port)
                 except (ONVIFError, ModelNotFound, BadCamera) as e:
                     error_msg = ('\nНе удалось произвести '
                                  f'настройку!\nПричина: {e}\n')
                     result += error_msg
+                    f.write(result)
                     print(f'\033[31m{error_msg}\033[0m')
                     switch.disable_port(port)
             else:
@@ -128,8 +131,8 @@ def multi_setup():
                                  'настроена! Не найдена по '
                                  'дефолтному ip.\n')
                 result += not_found_msg
+                f.write(result)
                 print(f'\033[33m{not_found_msg}\033[0m')
-            f.write(result)
     switch.turning_on_ports()
     print('\033[32mНастройка завершена!\033[0m\n')
 
@@ -195,34 +198,36 @@ def without_additional_devices():
     if not os.path.exists('log'):
         os.makedirs('log')
     with open(f'log/sudo_mode_{d_t}.log', 'a+') as f:
-        find_cam = 0
-        result = '-----sudo mode:-----'
+        done = []
+        f.write('-----sudo mode:-----')
         while True:
             def_ip = find_ip(DEF_IP, count=2)
             if def_ip:
                 try:
                     print(f'Дефолтный ip камеры: {def_ip}.')
                     mac_addr = scan_mac(def_ip)
-                    os.system(f'arp -s {def_ip} {mac_addr}')
-                    msg = Camera(host=def_ip, sudo=SUDO).setup_camera()
-                    result += msg
-                    os.system(f'arp -d {def_ip}')
-                    find_cam += 1
-                    sleep_bar(5, 'Wait')
+                    if mac_addr in done:
+                        pass
+                    else:
+                        os.system(f'arp -s {def_ip} {mac_addr}')
+                        msg = Camera(host=def_ip, sudo=SUDO).setup_camera()
+                        f.write(msg)
+                        os.system(f'arp -d {def_ip}')
+                        done.append(mac_addr)
+                        # sleep_bar(5, 'Wait')
                 except (ONVIFError, ModelNotFound, BadCamera) as e:
                     error_msg = ('\nНе удалось произвести '
                                  f'настройку!\nПричина: {e}\n')
-                    result += error_msg
+                    f.write(error_msg)
                     print(f'\033[31m{error_msg}\033[0m')
             else:
                 not_found_msg = ('\nКамер с дефолтным ip '
                                  'не найдено!\n')
-                if not find_cam:
-                    result += not_found_msg
+                if not done:
+                    f.write(not_found_msg)
                     print(f'\033[33m{not_found_msg}\033[0m')
                 else:
-                    print(f'\033[32mКамер настроено: {find_cam}\033[0m')
-                f.write(result)
+                    print(f'\033[32mКамер настроено: {len(done)}\033[0m')
                 print('\033[32mНастройка завершена!\033[0m\n')
                 break
 
