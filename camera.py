@@ -64,6 +64,7 @@ class Camera():
         deviceinfo = self.devicemgmt.GetDeviceInformation()
         self.model = deviceinfo.Model
         self.firmware = deviceinfo.FirmwareVersion
+        self.serial_number = deviceinfo.SerialNumber
         self.file = glob(CONF_DIR + f'/**/{self.model}.json',
                          recursive=True)
         self._open_config()
@@ -92,8 +93,8 @@ class Camera():
     def _get_media_service_version(self):
         if SERVICES['media2']['ns'] in self.onvif.xaddrs:
             media2 = self.onvif.create_media2_service()
-            test_vec = media2.GetVideoEncoderConfigurations()[0]
             try:
+                test_vec = media2.GetVideoEncoderConfigurations()[0]
                 media2.SetVideoEncoderConfiguration(test_vec)
                 self.services_versions['media'] = 2
                 return media2
@@ -102,6 +103,12 @@ class Camera():
                       'методами onvif media v2.\nНет возможности поменять '
                       'например кодек c H264 на H265.\033[0m\n')
                 pass
+            except IndexError:
+                # If the media2.GetVideoEncoderConfigurations()
+                # method returns an empty list
+                raise BadCamera('Камера не поддерживает основные '
+                                'сервисы onvif!\n'
+                                f'SerialNumber: {self.serial_number}')
         self.services_versions['media'] = 1
         return self.onvif.create_media_service()
 
@@ -110,7 +117,8 @@ class Camera():
         if media_profiles:
             return media_profiles
         else:
-            raise BadCamera('Камера не поддерживает основные сервисы onvif!')
+            raise BadCamera('Камера не поддерживает основные сервисы onvif!\n'
+                            f'SerialNumber: {self.serial_number}')
 
     def _synchronize_time(self):
         '''
@@ -519,6 +527,7 @@ class Camera():
         ip = ip if ip else get_ip(self.mac, self.sudo)
         info = (f'\nModel: {self.model}\n'
                 f'Firmware: {self.firmware}\n'
+                f'SerialNumber: {self.serial_number}\n'
                 f'MAC-address: {self.mac}\n'
                 f'RTSP uri: rtsp://admin:admin'
                 f"@{ip}:554{self.stream_uri}\n")

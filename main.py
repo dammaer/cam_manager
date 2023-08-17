@@ -203,23 +203,26 @@ def without_additional_devices():
         while True:
             def_ip = find_ip(DEF_IP, count=2)
             if def_ip:
-                try:
-                    print(f'Дефолтный ip камеры: {def_ip}.')
-                    mac_addr = scan_mac(def_ip)
-                    if mac_addr in done:
-                        pass
-                    else:
+                mac_addr = scan_mac(def_ip)
+                if mac_addr not in done:
+                    try:
+                        print(f'Дефолтный ip камеры: {def_ip}. '
+                              f'MAC: {mac_addr}.')
                         os.system(f'arp -s {def_ip} {mac_addr}')
                         msg = Camera(host=def_ip, sudo=SUDO).setup_camera()
                         f.write(msg)
-                        os.system(f'arp -d {def_ip}')
                         done.append(mac_addr)
-                        # sleep_bar(5, 'Wait')
-                except (ONVIFError, ModelNotFound, BadCamera) as e:
-                    error_msg = ('\nНе удалось произвести '
-                                 f'настройку!\nПричина: {e}\n')
-                    f.write(error_msg)
-                    print(f'\033[31m{error_msg}\033[0m')
+                    except (ONVIFError, ModelNotFound, BadCamera) as e:
+                        error_msg = ('\nНе удалось произвести '
+                                     'настройку камеры!\n'
+                                     f'Причина: {e}\n')
+                        f.write(error_msg)
+                        print(f'\033[31m{error_msg}\033[0m\n'
+                              '\033[33mДля продолжения настройки отключите '
+                              'проблемную камеру и нажмите Enter.\033[0m')
+                        while input() != '':
+                            time.sleep(1)
+                    os.system(f'arp -d {def_ip}')
             else:
                 not_found_msg = ('\nКамер с дефолтным ip '
                                  'не найдено!\n')
