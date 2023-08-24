@@ -1,8 +1,15 @@
 {
     "Firmware": {
         "basicfirmware": "IPCAM_V4.04.51.210325",
-        "IPCAM_V4.04.51.210325": {},
-        "IPCAM_V4.05.51.210325": {}
+        "IPCAM_V4.04.51.210325": {
+            "SetNetworkInterfaces": "1"
+        },
+        "IPCAM_V4.05.51.210325": {
+            "SetNetworkInterfaces": "1"
+        },
+        "IPCAM_V4.04.99.230728": {
+            "SetNetworkInterfaces": "2"
+        }
     },
     "FirmwareUpgradeParams": {
         "http": "1"
@@ -34,6 +41,11 @@
         "Username": "admin",
         "UserLevel": "Administrator"
     },
-    "SetNetworkInterfaces": {},
+    "SetNetworkInterfaces": {
+        "1": {},
+        "2": {
+            "http": "1"
+        }
+    },
     "FactoryDefault": {}
 }

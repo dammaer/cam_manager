@@ -107,6 +107,14 @@
             }
         ]
     },
+    "SetNetworkInterfaces": {
+        "1": {
+            "method": "POST",
+            "url": "/action/set?subject=network&adapter=0",
+            "data": "<?xml version=\"1.0\" encoding=\"utf-8\"?><request><network ver=\"2.0\"><mtu>1500</mtu><type>0</type><proto>1</proto><dhcpopt>8</dhcpopt><autodns>1</autodns><ipv4><mode>1</mode></ipv4></network></request>",
+            "timeout": 3
+        }
+    },
     "FactoryDefault": {
         "1": {
             "method": "PUT",

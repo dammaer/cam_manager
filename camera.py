@@ -16,7 +16,7 @@ from zeep import helpers
 
 from env import (ADMIN_PASSWD, CONF_DIR, DEF_IP, FW_DIR, NTP_DNS, PRECONFIG_IP,
                  VIEWER_PASSWD)
-from utils import find_ip, get_ip, host_ping, replace_http_params
+from utils import find_ip, get_ip, host_ping, mac_check, replace_http_params
 
 # progress bar params
 BAR_FMT = '{l_bar}{bar}'
@@ -60,7 +60,7 @@ class Camera():
                                  CONF_DIR + '/wsdl', adjust_time=True)
         self.devicemgmt = self.onvif.create_devicemgmt_service()
         self.network = self.devicemgmt.GetNetworkInterfaces()[0]
-        self.mac = self.network.Info.HwAddress
+        self.mac = mac_check(self.network.Info.HwAddress)
         deviceinfo = self.devicemgmt.GetDeviceInformation()
         self.model = deviceinfo.Model
         self.firmware = deviceinfo.FirmwareVersion
@@ -155,7 +155,7 @@ class Camera():
                 conf_num = conf.get(num, conf)
                 return func(self, conf_num)
             else:
-                if conf.get('1'):
+                if isinstance(conf.get('1'), dict):
                     for num in conf:
                         result = func(self, conf[num])
                         if result:
@@ -312,6 +312,15 @@ class Camera():
             return True
         return False
 
+    def TestNetworkInterfaces(self):
+        if self.host in DEF_IP:
+            ip = get_ip(self.mac, self.sudo)
+            if ip:
+                self.host = ip
+                return True
+            return False
+        return True
+
     def PreConfiguration(self):
         '''
         For Dahua cameras and cameras where you first need
@@ -464,6 +473,9 @@ class Camera():
         except ONVIFError:
             user.User['Username'] = conf['Username'].title()
             self.devicemgmt.SetUser(user)
+        #  Reset request session
+        self.passwd = ADMIN_PASSWD
+        self.session = None
 
     def SetDNS(self):
         conf = self.operations["SetDNS"]
@@ -473,28 +485,35 @@ class Camera():
         else:
             self.devicemgmt.SetDNS({'FromDHCP': True})
 
-    def SetNetworkInterfaces(self):
-        net_token = self.network.token
-        net = self.devicemgmt.create_type('SetNetworkInterfaces')
-        net.InterfaceToken = net_token
-        net.NetworkInterface = {'IPv4': {'Enabled': True, 'DHCP': True}}
+    @_selecting_config
+    def SetNetworkInterfaces(self, *args):
+        conf = args[0]
+        if 'http' in conf:
+            num = conf['http']
+            self._request(**self.http['SetNetworkInterfaces'][num])
+        else:
+            net_token = self.network.token
+            net = self.devicemgmt.create_type('SetNetworkInterfaces')
+            net.InterfaceToken = net_token
+            net.NetworkInterface = {'IPv4': {'Enabled': True, 'DHCP': True}}
 
-        def change():
-            try:
-                self.devicemgmt.SetNetworkInterfaces(net)
-            except ONVIFError:
-                ONVIFCamera(
-                    self.host,
-                    self.port,
-                    self.user,
-                    ADMIN_PASSWD,
-                    'configs/wsdl/',
-                    adjust_time=True
-                    ).devicemgmt.SetNetworkInterfaces(net)
-        process = Process(target=change)
-        process.start()
-        time.sleep(3)
-        process.kill()
+            def change():
+                try:
+                    self.devicemgmt.SetNetworkInterfaces(net)
+                except ONVIFError:
+                    ONVIFCamera(
+                        self.host,
+                        self.port,
+                        self.user,
+                        self.passwd,
+                        'configs/wsdl/',
+                        adjust_time=True
+                        ).devicemgmt.SetNetworkInterfaces(net)
+            process = Process(target=change)
+            process.start()
+            time.sleep(3)
+            process.kill()
+        return self.TestNetworkInterfaces()
 
     def SetSystemFactoryDefault(self):
         conf = self.operations['FactoryDefault']
@@ -524,7 +543,7 @@ class Camera():
         self.devicemgmt.SystemReboot()
 
     def get_info_after_setup(self, ip=None):
-        ip = ip if ip else get_ip(self.mac, self.sudo)
+        ip = ip if ip else self.host
         info = (f'\nModel: {self.model}\n'
                 f'Firmware: {self.firmware}\n'
                 f'SerialNumber: {self.serial_number}\n'
@@ -551,10 +570,13 @@ class Camera():
             method = getattr(self, operation)
             if method() is False:
                 errors += f'\nERROR! {operation}\n'
+                if operation == 'SetNetworkInterfaces':
+                    raise BadCamera(
+                        'Не поменялись настройки сети на DHCP!\n'
+                        f'SerialNumber: {self.serial_number}')
         if not errors:
             self._samosbor()
-        ip = self.host if self.host not in DEF_IP else None
-        info = self.get_info_after_setup(ip)
+        info = self.get_info_after_setup()
         print(f'\033[31m{errors}\033[0m{info}')
         msg += errors
         msg += info

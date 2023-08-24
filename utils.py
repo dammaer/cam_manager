@@ -52,6 +52,7 @@ def get_local_net_and_mask():
 
 
 def scan_ip_by_mac(mac, def_net=None):
+    '''def_net example 192.168.1.0/24'''
     net = get_local_net_and_mask() if def_net is None else def_net
     count = 0
     while count < 5:
