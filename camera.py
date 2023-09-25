@@ -180,9 +180,19 @@ class Camera():
         self.session.auth = (self.session_auth
                              if self.session_auth else get_auth())
         try:
-            self.session.request(method, url=base_url, data=data,
-                                 headers=headers, files=files,
-                                 json=json, timeout=timeout)
+            s = self.session.request(
+                method, url=base_url, data=data,
+                headers=headers, files=files,
+                json=json, timeout=timeout)
+            if s.status_code == 401:
+                # If after changing the admin password the new password
+                # is not suitable, make a request with the default password
+                self.passwd = 'admin'
+                self.session.auth = get_auth()
+                self.session.request(
+                    method, url=base_url, data=data,
+                    headers=headers, files=files,
+                    json=json, timeout=timeout)
         except ReadTimeout:
             # In the case of an http request after which there is
             # no response from the camera. For example,
@@ -475,7 +485,7 @@ class Camera():
             self.devicemgmt.SetUser(user)
         #  Reset request session
         self.passwd = ADMIN_PASSWD
-        self.session = None
+        self.session, self.session_auth = None, None
 
     def SetDNS(self):
         conf = self.operations["SetDNS"]
@@ -484,13 +494,14 @@ class Camera():
             self._request(**self.http['SetDNS'][num], timeout=3)
         else:
             self.devicemgmt.SetDNS({'FromDHCP': True})
+        return self.TestNetworkInterfaces()
 
     @_selecting_config
     def SetNetworkInterfaces(self, *args):
         conf = args[0]
         if 'http' in conf:
             num = conf['http']
-            self._request(**self.http['SetNetworkInterfaces'][num])
+            self._request(**self.http['SetNetworkInterfaces'][num], timeout=3)
         else:
             net_token = self.network.token
             net = self.devicemgmt.create_type('SetNetworkInterfaces')
@@ -560,17 +571,17 @@ class Camera():
             value = self.operations.get(op)
             if value or isinstance(value, dict):
                 sorted_operations[op] = value
-        for operation in tqdm(
+        for op in tqdm(
             sorted_operations,
             bar_format=BAR_FMT,
             ncols=NCOLS,
             colour=COLOUR,
             desc='Configuration'
         ):
-            method = getattr(self, operation)
+            method = getattr(self, op)
             if method() is False:
-                errors += f'\nERROR! {operation}\n'
-                if operation == 'SetNetworkInterfaces':
+                errors += f'\nERROR! {op}\n'
+                if op == 'SetNetworkInterfaces' or op == 'SetDNS':
                     raise BadCamera(
                         'Не поменялись настройки сети на DHCP!\n'
                         f'SerialNumber: {self.serial_number}')
