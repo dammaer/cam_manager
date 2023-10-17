@@ -55,7 +55,7 @@ def scan_ip_by_mac(mac, def_net=None):
     '''def_net example 192.168.1.0/24'''
     net = get_local_net_and_mask() if def_net is None else def_net
     count = 0
-    while count < 5:
+    while count < 10:
         ans, _ = srp(Ether(dst=mac)/ARP(
             pdst=net), verbose=0, timeout=3)
         for i in ans:
