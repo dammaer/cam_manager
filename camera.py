@@ -24,7 +24,7 @@ NCOLS = 30
 COLOUR = 'CYAN'
 
 ACTIONS = ('SetVideoEncoderMainStream', 'SetVideoEncoderSubStream',
-           'DeleteOSD', 'SetAudioEncoderConfiguration',
+           'DeleteOSD', 'SetCameraImage', 'SetAudioEncoderConfiguration',
            'SetSystemDateAndTime', 'SetNTP', 'CreateUsers', 'SetUser',
            'SetDNS', 'SetNetworkInterfaces')
 
@@ -425,6 +425,13 @@ class Camera():
                 self.media.DeleteOSD(*osd_text_token)
         return self.TestOSDs(token)
 
+    def SetCameraImage(self):
+        '''Turning on the camera's IR illumination'''
+        conf = self.operations['SetCameraImage']
+        if 'http' in conf:
+            num = conf['http']
+            self._request(**self.http['SetCameraImage'][num])
+
     def SetAudioEncoderConfiguration(self):
         conf = self.operations['SetAudioEncoderConfiguration']
         if 'http' in conf:
@@ -501,7 +508,7 @@ class Camera():
         conf = args[0]
         if 'http' in conf:
             num = conf['http']
-            self._request(**self.http['SetNetworkInterfaces'][num], timeout=3)
+            self._request(**self.http['SetNetworkInterfaces'][num])
         else:
             net_token = self.network.token
             net = self.devicemgmt.create_type('SetNetworkInterfaces')
@@ -595,9 +602,4 @@ class Camera():
 
 
 if __name__ == '__main__':
-    ip = find_ip(DEF_IP)
-    if ip:
-        setup = Camera(host=ip)
-        setup.setup_camera()
-    else:
-        print('\033[31mКамера с дефолтным ip не найдена.\033[0m')
+    pass

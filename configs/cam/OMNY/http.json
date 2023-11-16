@@ -1,6 +1,13 @@
 {
     "SetVideoEncoderMainStream": {},
     "SetVideoEncoderSubStream": {},
+    "SetCameraImage": {
+        "1": {
+            "method": "POST",
+            "url": "/action/set?subject=cameraimage",
+            "data": "<?xml version=\"1.0\" encoding=\"utf-8\"?><response><cameraimage ver=\"2.0\"><freq>0</freq><rotate>0</rotate><mirror>0</mirror><mode>0</mode><daysect>21600-64800</daysect><imagescene><imgstyle>0</imgstyle><saturation>50</saturation><sharpness>50</sharpness><contrast>50</contrast><brightness>50</brightness><noise>50</noise><ldc>0</ldc><defog>0</defog><dnr2d>1</dnr2d><dnr3d>1</dnr3d><widedynamic><blclevel>50</blclevel><hlclevel>50</hlclevel><wdrlevel>50</wdrlevel><wdr>0</wdr><backlight>0</backlight><highlight>0</highlight></widedynamic><autoexposure><mode>0</mode><metter>0</metter><shutter>4</shutter><iris>1</iris></autoexposure><whitebalance><mode>0</mode><rgain>50</rgain><ggain>50</ggain><bgain>50</bgain></whitebalance></imagescene><imagescene><imgstyle>0</imgstyle><saturation>50</saturation><sharpness>50</sharpness><contrast>50</contrast><brightness>50</brightness><noise>50</noise><ldc>0</ldc><defog>0</defog><dnr2d>1</dnr2d><dnr3d>1</dnr3d><widedynamic><blclevel>50</blclevel><hlclevel>50</hlclevel><wdrlevel>50</wdrlevel><wdr>0</wdr><backlight>0</backlight><highlight>0</highlight></widedynamic><autoexposure><mode>0</mode><metter>0</metter><shutter>4</shutter><iris>1</iris></autoexposure><whitebalance><mode>0</mode><rgain>50</rgain><ggain>50</ggain><bgain>50</bgain></whitebalance></imagescene><imagescene><imgstyle>0</imgstyle><saturation>50</saturation><sharpness>50</sharpness><contrast>50</contrast><brightness>50</brightness><noise>50</noise><ldc>0</ldc><defog>0</defog><dnr2d>1</dnr2d><dnr3d>1</dnr3d><widedynamic><blclevel>50</blclevel><hlclevel>50</hlclevel><wdrlevel>50</wdrlevel><wdr>0</wdr><backlight>0</backlight><highlight>0</highlight></widedynamic><autoexposure><mode>0</mode><metter>0</metter><shutter>4</shutter><iris>1</iris></autoexposure><whitebalance><mode>0</mode><rgain>50</rgain><ggain>50</ggain><bgain>50</bgain></whitebalance></imagescene><daynight><mode>0</mode><irled>1</irled><smartiren>1</smartiren><smartirlevel>5</smartirlevel><daysect>21600-64800</daysect><color>10</color><grey>5</grey><smartevt>0</smartevt><evtblink>0</evtblink><ledlevel>5</ledlevel><ledthreshonlevel>50</ledthreshonlevel><ledthreshofflevel>50</ledthreshofflevel></daynight></cameraimage></response>"
+        }
+    },
     "DeleteOSD": {
         "1": {
             "method": "POST",
