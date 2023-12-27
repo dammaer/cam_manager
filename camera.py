@@ -24,7 +24,8 @@ NCOLS = 30
 COLOUR = 'CYAN'
 
 ACTIONS = ('SetVideoEncoderMainStream', 'SetVideoEncoderSubStream',
-           'DeleteOSD', 'SetCameraImage', 'SetAudioEncoderConfiguration',
+           'DeleteOSD', 'SetCameraImage', 'SetEvents',
+           'SetAudioEncoderConfiguration',
            'SetSystemDateAndTime', 'SetNTP', 'CreateUsers', 'SetUser',
            'SetDNS', 'SetNetworkInterfaces')
 
@@ -432,6 +433,18 @@ class Camera():
             num = conf['http']
             self._request(**self.http['SetCameraImage'][num])
 
+    def SetEvents(self):
+        "Turning off motion detection on some camera models"
+        conf = self.operations['SetCameraImage']
+        if 'http' in conf:
+            num = conf['http']
+            http_ops = self.http['SetEvents'][num]
+            if isinstance(http_ops, list):
+                for op in http_ops:
+                    self._request(**op)
+            else:
+                self._request(**http_ops)
+
     def SetAudioEncoderConfiguration(self):
         conf = self.operations['SetAudioEncoderConfiguration']
         if 'http' in conf:
@@ -526,7 +539,7 @@ class Camera():
                         self.passwd,
                         'configs/wsdl/',
                         adjust_time=True
-                        ).devicemgmt.SetNetworkInterfaces(net)
+                    ).devicemgmt.SetNetworkInterfaces(net)
             process = Process(target=change)
             process.start()
             time.sleep(3)
@@ -602,4 +615,5 @@ class Camera():
 
 
 if __name__ == '__main__':
-    pass
+    camera = Camera('192.168.13.133', passwd='nu7AeXoo')
+    print(camera.devicemgmt.GetDNS())

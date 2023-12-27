@@ -1,8 +1,8 @@
 {
     "Firmware": {
-        "IPCAM_V4.05.02.230814": {
-            "SetNetworkInterfaces": "2"
-        }
+        "basicfirmware": "IPCAM_V4.05.06.231017",
+        "IPCAM_V4.05.02.230814": {},
+        "IPCAM_V4.05.06.231017": {}
     },
     "FirmwareUpgradeParams": {
         "http": "1"
@@ -22,6 +22,9 @@
     "SetCameraImage": {
         "http": "1"
     },
+    "SetEvents": {
+        "http": "1"
+    },
     "DeleteOSD": {},
     "SetAudioEncoderConfiguration": {
         "http": "2"
@@ -38,10 +41,7 @@
         "UserLevel": "Administrator"
     },
     "SetNetworkInterfaces": {
-        "1": {},
-        "2": {
-            "http": "1"
-        }
+        "http": "1"
     },
     "FactoryDefault": {}
 }
