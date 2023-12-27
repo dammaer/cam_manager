@@ -615,5 +615,4 @@ class Camera():
 
 
 if __name__ == '__main__':
-    camera = Camera('192.168.13.133', passwd='nu7AeXoo')
-    print(camera.devicemgmt.GetDNS())
+    pass
