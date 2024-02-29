@@ -259,7 +259,7 @@ class Camera():
                 if not ping.is_alive and not not_alive:
                     not_alive = True
                 elif not_alive and ping.is_alive:
-                    time.sleep(10)
+                    time.sleep(20)  # after camera reboot
                     pbar.update(total - (i * (total / timeout)))
                     process.kill()
                     break

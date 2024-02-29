@@ -3,11 +3,13 @@
         "1": "IPCAM_BV_S35_15_N_V4.04.51.210325(OVF DANA VA_MVE NFS DH).fm",
         "2": "IPCAM_BV_S37_15_N_V4.05.56.210423(OVF DANA PTZ VA_MVE NFS DH).fm",
         "3": "NVSS_IE_V25.0.1.20210723_210695S1.box",
-        "4": "IPCAM_BV_S35_15_N_V4.05.06.231017.fm"
+        "4": "IPCAM_BV_S35_15_N_V4.05.06.231017.fm",
+        "5": "IPCAM_BV_S37_15_N_V4.05.12.240104(OVF VA_MVE NFS DH LARGA).fm"
     },
     "OMNY-miniDome2EWDU": "1",
     "OMNY-miniDome2EWD12V": "1",
     "OMNY-miniDome5EWDU": "2",
     "OMNY-miniDome2EWDSSDL28": "4",
+    "OMNY-miniDome5EWDSSDL28": "5",
     "OMNY A55SN 28": "3"
 }
