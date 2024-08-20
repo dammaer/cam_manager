@@ -14,6 +14,12 @@
         "Height": 360,
         "BitrateLimit": 512
     },
+    "SetCameraImage": {
+        "http": "1"
+    },
+    "SetEvents": {
+        "http": "1"
+    },
     "DeleteOSD": {},
     "SetAudioEncoderConfiguration": {
         "http": "2"

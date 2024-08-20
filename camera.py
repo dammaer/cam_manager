@@ -7,7 +7,7 @@ from json import load as json_load
 from multiprocessing import Process
 
 from onvif2 import SERVICES, ONVIFCamera, ONVIFError
-from requests import Session
+from requests import Session, request
 from requests import get as requests_get
 from requests.auth import HTTPBasicAuth, HTTPDigestAuth
 from requests.exceptions import ReadTimeout
@@ -343,7 +343,7 @@ class Camera():
             with open(file, 'r') as f:
                 params = json_load(f)
             for p in params['PreConfiguration']:
-                self._request(**p)
+                request(**p)
             self.passwd = ADMIN_PASSWD
 
     def SetVideoEncoderConfiguration(self, vec_num, vec_conf, json_conf):
@@ -615,4 +615,4 @@ class Camera():
 
 
 if __name__ == '__main__':
-    pass
+    Camera('192.168.1.120').SetEvents()
