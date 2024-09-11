@@ -8,7 +8,7 @@
         "Encoding": "H264",
         "Width": 1920,
         "Height": 1080,
-        "BitrateLimit": 2048
+        "BitrateLimit": 4096
     },
     "SetVideoEncoderSubStream": {
         "Encoding": "H264",

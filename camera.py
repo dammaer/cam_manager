@@ -615,4 +615,4 @@ class Camera():
 
 
 if __name__ == '__main__':
-    Camera('192.168.1.120').SetEvents()
+    Camera('192.168.1.120').setup_camera()

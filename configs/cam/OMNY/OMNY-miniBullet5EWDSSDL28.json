@@ -1,11 +1,12 @@
 {
     "Firmware": {
-        "IPCAM_V4.05.04.230825": {}
+        "IPCAM_V4.05.04.230825": {},
+        "IPCAM_V4.05.12.240104": {}
     },
     "SetVideoEncoderMainStream": {
         "Encoding": "H264",
-        "Width": 2688,
-        "Height": 1520,
+        "Width": 1920,
+        "Height": 1080,
         "BitrateLimit": 4096
     },
     "SetVideoEncoderSubStream": {
