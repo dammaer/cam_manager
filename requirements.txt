@@ -6,7 +6,6 @@ charset-normalizer==2.1.1
 icmplib==3.0.3
 idna==3.4
 isodate==0.6.1
-pycryptodomex==3.19.0
 kdtree==0.16
 lxml==4.9.2
 mccabe==0.7.0
@@ -16,16 +15,17 @@ pexpect==4.8.0
 platformdirs==2.6.0
 ptyprocess==0.7.0
 pycodestyle==2.10.0
+pycryptodomex==3.19.0
 pyflakes==3.0.1
 pyinstaller==5.7.0
 pyinstaller-hooks-contrib==2022.15
 python-dotenv==0.21.0
 pytz==2022.6
-pycryptodomex==3.19.0
 requests==2.31.0
 requests-file==1.5.1
 requests-toolbelt==0.10.1
 RouterOS-api==0.17.0
+scapy==2.6.0
 simple-term-menu==1.6.1
 six==1.16.0
 tomli==2.0.1
