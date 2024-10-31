@@ -1,28 +1,25 @@
 {
     "Firmware": {
-        "2.820.0000000.36.R, Build Date 2021-07-23": {}
+        "V5.7.2 build 230427": {},
+        "V5.7.2 build 240428": {}
     },
     "SetVideoEncoderMainStream": {
         "Encoding": "H264",
-        "Width": 1920,
-        "Height": 1080,
+        "Width": 1280,
+        "Height": 720,
         "BitrateLimit": 2048
     },
     "SetVideoEncoderSubStream": {
         "Encoding": "H264",
-        "Width": 704,
-        "Height": 576,
+        "Width": 640,
+        "Height": 360,
         "BitrateLimit": 512
     },
     "DeleteOSD": {},
     "SetSystemDateAndTime": {
-        "TZ": "GMT+03:00PDT,M1.1.1/00:00:00,M1.1.2/00:00:00"
+        "TZ": "CST-3:00:00"
     },
     "SetNTP": {},
-    "CreateUsers": {
-        "Username": "viewer",
-        "UserLevel": "Operator"
-    },
     "SetNetworkInterfaces": {},
     "FactoryDefault": {}
 }

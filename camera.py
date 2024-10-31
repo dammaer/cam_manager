@@ -7,16 +7,17 @@ from json import load as json_load
 from multiprocessing import Process
 
 from onvif2 import SERVICES, ONVIFCamera, ONVIFError
-from requests import Session, request
+from requests import Session
 from requests import get as requests_get
 from requests.auth import HTTPBasicAuth, HTTPDigestAuth
 from requests.exceptions import ReadTimeout
 from tqdm import tqdm
 from zeep import helpers
 
-from env import (ADMIN_PASSWD, CONF_DIR, DEF_IP, FW_DIR, NTP_DNS, PRECONFIG_IP,
+from env import (ADMIN_PASSWD, CONF_DIR, DEF_IP, FW_DIR, NTP_DNS,
                  VIEWER_PASSWD)
 from utils import find_ip, get_ip, host_ping, mac_check, replace_http_params
+from hikvision import activate as hw_activate
 
 # progress bar params
 BAR_FMT = '{l_bar}{bar}'
@@ -55,6 +56,7 @@ class Camera():
         self.passwd = passwd
         self.upgrade = upgrade
         self.preconf = preconf
+        self.cam_reboot = False
         self.sudo = sudo
         self.PreConfiguration()
         self.onvif = ONVIFCamera(self.host, port, user, self.passwd,
@@ -267,7 +269,6 @@ class Camera():
                 time.sleep(1)
 
     def GetStreamUri(self):
-        stream_uri = None
         match self.services_versions['media']:
             case 1:
                 stream_uri = self.media.GetStreamUri(
@@ -280,7 +281,7 @@ class Camera():
                 stream_uri = self.media.GetStreamUri(
                     {'Protocol': 'RtspUnicast',
                      'ProfileToken': self.profile_token})
-        return stream_uri.split('554')[-1]
+        return stream_uri
 
     def TestVideoEncoderConfiguration(self, vec_num, modified_conf):
         resp = self.media.GetVideoEncoderConfigurations()[vec_num]
@@ -323,7 +324,14 @@ class Camera():
             return True
         return False
 
-    def TestNetworkInterfaces(self):
+    def TestNetworkInterfaces(self, cam_reboot=False):
+        if cam_reboot:
+            ip = False
+            while not ip:
+                ip = get_ip(self.mac, self.sudo)
+                time.sleep(0.5)
+            self.host = ip
+            return True
         if self.host in DEF_IP:
             ip = get_ip(self.mac, self.sudo)
             if ip:
@@ -337,14 +345,20 @@ class Camera():
         For Dahua cameras and cameras where you first need
         to set user settings to enable access to the onfiv service
         '''
-        if self.host in PRECONFIG_IP and self.preconf:
-            file = glob(CONF_DIR + f'/**/{PRECONFIG_IP[self.host]}.json',
-                        recursive=True)[0]
-            with open(file, 'r') as f:
-                params = json_load(f)
-            for p in params['PreConfiguration']:
-                request(**p)
+        hikvision_ip = ['192.168.1.64']
+        # if self.host in PRECONFIG_IP and self.preconf:
+        #     file = glob(CONF_DIR + f'/**/{PRECONFIG_IP[self.host]}.json',
+        #                 recursive=True)[0]
+        #     with open(file, 'r') as f:
+        #         params = json_load(f)
+        #     for p in params['PreConfiguration']:
+        #         request(**p)
+        #     self.passwd = ADMIN_PASSWD
+        if self.host in hikvision_ip and self.preconf:
+            additional_users = [['viewer', VIEWER_PASSWD, 'v']]
+            hw_activate(self.host, ADMIN_PASSWD, additional_users)
             self.passwd = ADMIN_PASSWD
+            self.cam_reboot = True
 
     def SetVideoEncoderConfiguration(self, vec_num, vec_conf, json_conf):
         match self.services_versions['media']:
@@ -531,6 +545,8 @@ class Camera():
             def change():
                 try:
                     self.devicemgmt.SetNetworkInterfaces(net)
+                    if self.cam_reboot:
+                        self.SystemReboot()
                 except ONVIFError:
                     ONVIFCamera(
                         self.host,
@@ -544,7 +560,7 @@ class Camera():
             process.start()
             time.sleep(3)
             process.kill()
-        return self.TestNetworkInterfaces()
+        return self.TestNetworkInterfaces(self.cam_reboot)
 
     def SetSystemFactoryDefault(self):
         conf = self.operations['FactoryDefault']
@@ -579,8 +595,8 @@ class Camera():
                 f'Firmware: {self.firmware}\n'
                 f'SerialNumber: {self.serial_number}\n'
                 f'MAC-address: {self.mac}\n'
-                f'RTSP uri: rtsp://admin:admin'
-                f"@{ip}:554{self.stream_uri}\n")
+                f'IP-address DHCP: {self.host}\n'
+                f'RTSP uri: {self.stream_uri}\n')
         return info
 
     def setup_camera(self):
@@ -615,4 +631,4 @@ class Camera():
 
 
 if __name__ == '__main__':
-    Camera('192.168.1.120').setup_camera()
+    Camera('192.168.1.64').setup_camera()

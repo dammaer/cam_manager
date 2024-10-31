@@ -1,0 +1,24 @@
+{
+    "Firmware": {
+        "V5.7.3 build 230511": {}
+    },
+    "SetVideoEncoderMainStream": {
+        "Encoding": "H264",
+        "Width": 1920,
+        "Height": 1080,
+        "BitrateLimit": 2048
+    },
+    "SetVideoEncoderSubStream": {
+        "Encoding": "H264",
+        "Width": 640,
+        "Height": 360,
+        "BitrateLimit": 512
+    },
+    "DeleteOSD": {},
+    "SetSystemDateAndTime": {
+        "TZ": "CST-3:00:00"
+    },
+    "SetNTP": {},
+    "SetNetworkInterfaces": {},
+    "FactoryDefault": {}
+}
