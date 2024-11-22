@@ -3,6 +3,8 @@ import re
 import socket
 import struct
 import time
+import os
+import sys
 from ipaddress import IPv4Network
 from itertools import product
 
@@ -62,7 +64,7 @@ def scan_ip_by_mac(mac, def_net=None):
             if i[1].getlayer(Ether).src == mac:
                 return (i[1].getlayer(ARP).psrc)
         count += 1
-        time.sleep(1)
+        time.sleep(2)
 
 
 def scan_mac(ip):
@@ -195,3 +197,10 @@ def mcast_recv():
         return sock.recv(1024).decode()
     except TimeoutError:
         return False
+
+
+def resource_path(relative):
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative)
+    else:
+        return os.path.join(os.path.abspath("."), relative)

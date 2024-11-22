@@ -325,14 +325,7 @@ class Camera():
         return False
 
     def TestNetworkInterfaces(self, cam_reboot=False):
-        if cam_reboot:
-            ip = False
-            while not ip:
-                ip = get_ip(self.mac, self.sudo)
-                time.sleep(0.5)
-            self.host = ip
-            return True
-        if self.host in DEF_IP:
+        if self.host in DEF_IP or cam_reboot:
             ip = get_ip(self.mac, self.sudo)
             if ip:
                 self.host = ip
@@ -583,19 +576,20 @@ class Camera():
                     pbar.update(total - (i * (total / timeout)))
                     break
                 pbar.update(total / timeout)
-                time.sleep(1)
+                time.sleep(2)
         return def_ip
 
     def SystemReboot(self):
         self.devicemgmt.SystemReboot()
 
-    def get_info_after_setup(self, ip=None):
+    def get_info_after_setup(self, ip=None, reset=False):
+        '''IP address is transmitted only in reset mode to default settings'''
         ip = ip if ip else self.host
         info = (f'\nModel: {self.model}\n'
                 f'Firmware: {self.firmware}\n'
                 f'SerialNumber: {self.serial_number}\n'
                 f'MAC-address: {self.mac}\n'
-                f'IP-address DHCP: {self.host}\n'
+                f"IP-address {'DEFAULT' if reset else 'DHCP'}: {ip}\n"
                 f'RTSP uri: {self.stream_uri}\n')
         return info
 
@@ -631,4 +625,4 @@ class Camera():
 
 
 if __name__ == '__main__':
-    Camera('192.168.1.64').setup_camera()
+    Camera('10.36.2.48', user='admin', passwd='admi1234').SystemReboot()

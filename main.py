@@ -22,6 +22,7 @@ except UpdateAppError as e:
 
 import signal
 import time
+import climage
 from datetime import datetime as dt
 
 from onvif2 import ONVIFError
@@ -33,7 +34,7 @@ from env import DEF_IP, OTHER_LOGINS, OTHER_PASSWDS, SWI_IP, SWI_UPLINK
 from poe_switch import SwiFail, Switch
 from utils import (MacAddressBad, brute_force, find_ip, get_ip, host_ping,
                    ip_iface_check, mac_check, mcast_recv, mcast_send, scan_mac,
-                   sleep_bar)
+                   sleep_bar, resource_path)
 
 ip_iface, iface = ip_iface_check(DEF_IP)
 if ip_iface:
@@ -165,7 +166,8 @@ def factory_reset():
                                     upgrade=False, preconf=False)
                     def_ip = camera.SetSystemFactoryDefault()
                     if def_ip:
-                        print(camera.get_info_after_setup(ip=def_ip))
+                        print(camera.get_info_after_setup(ip=def_ip,
+                                                          reset=True))
                         break
                     else:
                         print('\n\033[33mПосле попытки сброса, '
@@ -241,7 +243,7 @@ def setup():
               '                           _|     \n'
               '   > https://github.com/dammaer\033[0m')
     banner_shown = False
-    title = 'ДЛЯ НАСТРОЙКИ КАМЕР HiWatch ПОПОЛНИТЕ МОЮ КАРТУ 2202203210783777 НА 100 р.!!!\nВыберите режим настройки:\n'
+    title = 'Выберите режим настройки:\n'
     options = ["Настройка одной камеры",
                "Настройка нескольких камер с использованием POE коммутатора",
                "Сброс камеры к заводским настройкам",
@@ -269,6 +271,16 @@ def setup():
             print(banner)
             banner_shown = True
             time.sleep(1.2)
+            os.system('cls' if os.name == 'nt' else 'clear')
+            img = resource_path('bu.png')
+            output = climage.convert(img, is_unicode=True)
+            print(output)
+            print('БУ, ИСПУГАЛСЯ? НЕ БОЙСЯ. Я ДРУГ, Я ТЕБЯ НЕ ОБИЖУ.\n'
+                  'ПОПОЛНИ МОЮ КАРТУ \033[41m2202203210783777\033[0m НА 100 Р. И НАСТРАИВАЙ КАМЕРЫ ДАЛЬШЕ!\n')
+            print('Посмотри мне в глаза. Ты пополнил? Просто нажми Enter если пополнил, я тебе доверяю!')
+            while input() != '':
+                time.sleep(1)
+
         if not SUDO:
             main_select = menu(options, title).show()
             match main_select:
@@ -381,6 +393,8 @@ if __name__ == '__main__':
         except KeyboardInterrupt:
             process.kill()
             print('\n\033[33mНастройка прервана!\033[0m')
+            for ip in DEF_IP:
+                os.system(f'arp -d {ip} 2>/dev/null')
             sys.exit()
         finally:
             process.kill()
