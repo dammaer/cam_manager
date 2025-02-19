@@ -625,4 +625,4 @@ class Camera():
 
 
 if __name__ == '__main__':
-    Camera('10.36.2.48', user='admin', passwd='admi1234').SystemReboot()
+    Camera('192.168.1.120', user='admin', passwd='admin').setup_camera()

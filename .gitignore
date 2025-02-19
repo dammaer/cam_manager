@@ -3,7 +3,7 @@ venv
 venv_ubuntu16.04
 .vscode/
 temp.py
-testing.py
+testing*
 env.py
 __pycache__/
 dist/
