@@ -11,12 +11,6 @@
         "Height": 720,
         "BitrateLimit": 2048
     },
-    "SetVideoEncoderSubStream": {
-        "Encoding": "H264",
-        "Width": 640,
-        "Height": 360,
-        "BitrateLimit": 512
-    },
     "SetCameraImage": {
         "http": "1"
     },

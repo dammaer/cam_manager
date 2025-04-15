@@ -3,7 +3,6 @@ import shutil
 from pathlib import Path
 
 from env import MAIN_DIR
-from utils import sleep_bar
 
 dirs = ('configs', 'firmware')
 makeZipDir = MAIN_DIR + '/dist'
@@ -13,13 +12,7 @@ print('0 - скомпилировать бинарник и выгрузить �
 сhoice = int(input('> '))
 
 if not сhoice:
-    while os.system(f'docker exec -it {container_id} bash -c "exit"') != 0:
-        os.system(f'docker restart {container_id}')
-        sleep_bar(3, 'restarting container')
-
-    os.system(f'docker exec -it {container_id} bash -c '
-              '"cd /project && source venv_ubuntu16.04/bin/activate '
-              '&& pyinstaller --clean cam-manager.spec"')
+    os.system('pyinstaller --clean cam-manager.spec"')
 
 for dir in dirs:
     shutil.make_archive(dir, 'zip', MAIN_DIR + f'/{dir}')

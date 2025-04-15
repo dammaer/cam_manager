@@ -2,7 +2,8 @@
     "Firmware": {
         "basicfirmware": "IPCAM_V4.05.06.231017",
         "IPCAM_V4.05.02.230814": {},
-        "IPCAM_V4.05.06.231017": {}
+        "IPCAM_V4.05.06.231017": {},
+        "IPCAM_V4.06.45.241230": {}
     },
     "FirmwareUpgradeParams": {
         "http": "1"
@@ -12,12 +13,6 @@
         "Width": 1280,
         "Height": 720,
         "BitrateLimit": 2048
-    },
-    "SetVideoEncoderSubStream": {
-        "Encoding": "H264",
-        "Width": 640,
-        "Height": 360,
-        "BitrateLimit": 512
     },
     "SetCameraImage": {
         "http": "1"
